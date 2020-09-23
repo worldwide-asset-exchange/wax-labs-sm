@@ -1,4 +1,4 @@
-# WAX Labs
+# WAX Labs Contracts
 A funding platform for WAX Labs proposals.
 
 ## Dependencies
