@@ -1,0 +1,856 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.1",
+    "types": [],
+    "structs": [
+        {
+            "name": "account",
+            "base": "",
+            "fields": [
+                {
+                    "name": "balance",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "addcategory",
+            "base": "",
+            "fields": [
+                {
+                    "name": "new_category",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "beginvoting",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "ballot_name",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "cancelprop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "claimfunds",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "deliverable_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "config",
+            "base": "",
+            "fields": [
+                {
+                    "name": "contract_name",
+                    "type": "string"
+                },
+                {
+                    "name": "contract_version",
+                    "type": "string"
+                },
+                {
+                    "name": "admin_acct",
+                    "type": "name"
+                },
+                {
+                    "name": "admin_auth",
+                    "type": "name"
+                },
+                {
+                    "name": "available_funds",
+                    "type": "asset"
+                },
+                {
+                    "name": "reserved_funds",
+                    "type": "asset"
+                },
+                {
+                    "name": "deposited_funds",
+                    "type": "asset"
+                },
+                {
+                    "name": "paid_funds",
+                    "type": "asset"
+                },
+                {
+                    "name": "vote_duration",
+                    "type": "uint32"
+                },
+                {
+                    "name": "quorum_threshold",
+                    "type": "float64"
+                },
+                {
+                    "name": "yes_threshold",
+                    "type": "float64"
+                },
+                {
+                    "name": "min_requested",
+                    "type": "asset"
+                },
+                {
+                    "name": "max_requested",
+                    "type": "asset"
+                },
+                {
+                    "name": "categories",
+                    "type": "name[]"
+                }
+            ]
+        },
+        {
+            "name": "deleteacct",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account_name",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "deleteprop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "deliverable",
+            "base": "",
+            "fields": [
+                {
+                    "name": "deliverable_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "requested",
+                    "type": "asset"
+                },
+                {
+                    "name": "recipient",
+                    "type": "name"
+                },
+                {
+                    "name": "report",
+                    "type": "string"
+                },
+                {
+                    "name": "review_time",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "draftprop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "content",
+                    "type": "string"
+                },
+                {
+                    "name": "proposer",
+                    "type": "name"
+                },
+                {
+                    "name": "category",
+                    "type": "name"
+                },
+                {
+                    "name": "total_requested_funds",
+                    "type": "asset"
+                },
+                {
+                    "name": "deliverables_count",
+                    "type": "uint8"
+                }
+            ]
+        },
+        {
+            "name": "editdeliv",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "deliverable_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "new_requested_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "new_recipient",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "editprofile",
+            "base": "",
+            "fields": [
+                {
+                    "name": "wax_account",
+                    "type": "name"
+                },
+                {
+                    "name": "full_name",
+                    "type": "string"
+                },
+                {
+                    "name": "country",
+                    "type": "string"
+                },
+                {
+                    "name": "bio",
+                    "type": "string"
+                },
+                {
+                    "name": "image_url",
+                    "type": "string"
+                },
+                {
+                    "name": "website",
+                    "type": "string"
+                },
+                {
+                    "name": "contact",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "endvoting",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "init",
+            "base": "",
+            "fields": [
+                {
+                    "name": "contract_name",
+                    "type": "string"
+                },
+                {
+                    "name": "contract_version",
+                    "type": "string"
+                },
+                {
+                    "name": "initial_admin",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "newdeliv",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "deliverable_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "requested_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "recipient",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "newprofile",
+            "base": "",
+            "fields": [
+                {
+                    "name": "wax_account",
+                    "type": "name"
+                },
+                {
+                    "name": "full_name",
+                    "type": "string"
+                },
+                {
+                    "name": "country",
+                    "type": "string"
+                },
+                {
+                    "name": "bio",
+                    "type": "string"
+                },
+                {
+                    "name": "image_url",
+                    "type": "string"
+                },
+                {
+                    "name": "website",
+                    "type": "string"
+                },
+                {
+                    "name": "contact",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "pair_name_asset",
+            "base": "",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "name"
+                },
+                {
+                    "name": "value",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "profile",
+            "base": "",
+            "fields": [
+                {
+                    "name": "wax_account",
+                    "type": "name"
+                },
+                {
+                    "name": "full_name",
+                    "type": "string"
+                },
+                {
+                    "name": "country",
+                    "type": "string"
+                },
+                {
+                    "name": "bio",
+                    "type": "string"
+                },
+                {
+                    "name": "image_url",
+                    "type": "string"
+                },
+                {
+                    "name": "website",
+                    "type": "string"
+                },
+                {
+                    "name": "contact",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "proposal",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "proposer",
+                    "type": "name"
+                },
+                {
+                    "name": "category",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "ballot_name",
+                    "type": "name"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "content",
+                    "type": "string"
+                },
+                {
+                    "name": "total_requested_funds",
+                    "type": "asset"
+                },
+                {
+                    "name": "remaining_funds",
+                    "type": "asset"
+                },
+                {
+                    "name": "deliverables",
+                    "type": "uint8"
+                },
+                {
+                    "name": "deliverables_completed",
+                    "type": "uint8"
+                },
+                {
+                    "name": "reviewer",
+                    "type": "name"
+                },
+                {
+                    "name": "ballot_results",
+                    "type": "pair_name_asset[]"
+                }
+            ]
+        },
+        {
+            "name": "reviewdeliv",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "deliverable_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "accept",
+                    "type": "bool"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "reviewprop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "approve",
+                    "type": "bool"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "rmvcategory",
+            "base": "",
+            "fields": [
+                {
+                    "name": "category_name",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "rmvdeliv",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "deliverable_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "rmvprofile",
+            "base": "",
+            "fields": [
+                {
+                    "name": "wax_account",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "setadmin",
+            "base": "",
+            "fields": [
+                {
+                    "name": "new_admin",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "setduration",
+            "base": "",
+            "fields": [
+                {
+                    "name": "new_vote_duration",
+                    "type": "uint32"
+                }
+            ]
+        },
+        {
+            "name": "setreviewer",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "deliverable_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "new_reviewer",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "setversion",
+            "base": "",
+            "fields": [
+                {
+                    "name": "new_version",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "submitprop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "submitreport",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "deliverable_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "report",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "withdraw",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account_owner",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "addcategory",
+            "type": "addcategory",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "beginvoting",
+            "type": "beginvoting",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cancelprop",
+            "type": "cancelprop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "claimfunds",
+            "type": "claimfunds",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "deleteacct",
+            "type": "deleteacct",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "deleteprop",
+            "type": "deleteprop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "draftprop",
+            "type": "draftprop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "editdeliv",
+            "type": "editdeliv",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "editprofile",
+            "type": "editprofile",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "endvoting",
+            "type": "endvoting",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "init",
+            "type": "init",
+            "ricardian_contract": "---\nspec_version: \"0.2.0\"\ntitle: Init Contract\nsummary: 'Initialize the WAX Labs {{nowrap contract_version}} Contract'\nicon: https://github.com/Telos-Foundation/images/raw/master/ricardian_assets/eosio.contracts/icons/account.png#3d55a2fc3a5c20b456f5657faf666bc25ffd06f4836c5e8256f741149b0b294f\n---\n\nInitialize the WAX Labs Contract"
+        },
+        {
+            "name": "newdeliv",
+            "type": "newdeliv",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "newprofile",
+            "type": "newprofile",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "reviewdeliv",
+            "type": "reviewdeliv",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "reviewprop",
+            "type": "reviewprop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rmvcategory",
+            "type": "rmvcategory",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rmvdeliv",
+            "type": "rmvdeliv",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rmvprofile",
+            "type": "rmvprofile",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setadmin",
+            "type": "setadmin",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setduration",
+            "type": "setduration",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setreviewer",
+            "type": "setreviewer",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setversion",
+            "type": "setversion",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "submitprop",
+            "type": "submitprop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "submitreport",
+            "type": "submitreport",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "withdraw",
+            "type": "withdraw",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "accounts",
+            "type": "account",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "config",
+            "type": "config",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "deliverables",
+            "type": "deliverable",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "profiles",
+            "type": "profile",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "proposals",
+            "type": "proposal",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [
+        {
+            "id": "Intent",
+            "body": "The intention of the authors and invoker of this smart contract is to ..."
+        },
+        {
+            "id": "Term",
+            "body": "This Contract expires at the conclusion of code execution."
+        },
+        {
+            "id": "Warranty",
+            "body": "{{ name }} shall uphold its Obligations under this Contract in a timely and workmanlike manner, using knowledge and recommendations for performing the services which meet generally acceptable standards set forth by Telos Blockchain Network Block Producers."
+        },
+        {
+            "id": "Default",
+            "body": "The occurrence of any of the following shall constitute a material default under this Contract:"
+        },
+        {
+            "id": "Remedies",
+            "body": "In addition to any and all other rights a party may have available according to law, if a party defaults by failing to substantially perform any provision, term or condition of this Contract, the other party may terminate the Contract by providing written notice to the defaulting party. This notice shall describe with sufficient detail the nature of the default. The party receiving such notice shall promptly be removed from being a Block Producer and this Contract shall be automatically terminated.\""
+        },
+        {
+            "id": "Force Majeure",
+            "body": "If performance of this Contract or any obligation under this Contract is prevented, restricted, or interfered with by causes beyond either party's reasonable control (\\\"Force Majeure\\\"), and if the party unable to carry out its obligations gives the other party prompt written notice of such event, then the obligations of the party invoking this provision shall be suspended to the extent necessary by such event. The term Force Majeure shall include, without limitation, acts of God, fire, explosion, vandalism, storm or other similar occurrence, orders or acts of military or civil authority, or by national emergencies, insurrections, riots, or wars, or strikes, lock-outs, work stoppages, or supplier failures. The excused party shall use reasonable efforts under the circumstances to avoid or remove such causes of non-performance and shall proceed to perform with reasonable dispatch whenever such causes are removed or ceased. An act or omission shall be deemed within the reasonable control of a party if committed, omitted, or caused by such party, or its employees, officers, agents, or affiliates.\""
+        },
+        {
+            "id": "Dispute Resolution",
+            "body": "Any controversies or disputes arising out of or relating to this Contract will be resolved by binding arbitration under Telos Blockchain Network Arbitration Rules and Procedures. The arbitrator's award will be final.\""
+        },
+        {
+            "id": "Entire Agreement",
+            "body": "This Contract contains the entire agreement of the parties, and there are no other promises or conditions in any other agreement whether oral or written concerning the subject matter of this Contract. This Contract supersedes any prior written or oral agreements between the parties, except for the Telos Blockchain Network Core Governance Documents\""
+        },
+        {
+            "id": "Severability",
+            "body": "If any provision of this Contract will be held to be invalid or unenforceable for any reason, the remaining provisions will continue to be valid and enforceable. If a court finds that any provision of this Contract is invalid or unenforceable, but that by limiting such provision it would become valid and enforceable, then such provision will be deemed to be written, construed, and enforced as so limited.\""
+        },
+        {
+            "id": "Governing Law",
+            "body": "This Contract shall be construed in accordance with the Telos Blockchain Network Core Governance Documents, previously referenced."
+        },
+        {
+            "id": "Notice",
+            "body": "Any notice or communication required or permitted under this Contract shall be sufficiently given if delivered to a verifiable email address or to such other email address as one party may have publicly furnished in writing, or published on a broadcast contract provided by this blockchain for purposes of providing notices of this type."
+        },
+        {
+            "id": "Waiver of Contractual Right",
+            "body": "The failure of either party to enforce any provision of this Contract shall not be construed as a waiver or limitation of that party's right to subsequently enforce and compel strict compliance with every provision of this Contract."
+        },
+        {
+            "id": "Arbitrator's Fees to Prevailing Party",
+            "body": "In any action arising hereunder or any separate action pertaining to the validity of this Agreement, both sides shall pay half the initial cost of arbitration, and the prevailing party shall be awarded reasonable arbitrator's fees and costs."
+        },
+        {
+            "id": "Construction and Interpretation",
+            "body": "The rule requiring construction or interpretation against the drafter is waived. The document shall be deemed as if it were drafted by both parties in a mutual effort.\""
+        },
+        {
+            "id": "In Witness Whereof",
+            "body": "IN WITNESS WHEREOF, the parties hereto have caused this Agreement to be executed by themselves or their duly authorized representatives as of the date of execution, and authorized as proven by the cryptographic signature on the transaction that invokes this contract."
+        }
+    ],
+    "variants": []
+}
