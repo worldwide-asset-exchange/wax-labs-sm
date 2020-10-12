@@ -256,7 +256,7 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
     sub_balance(prop.proposer, newballot_fee);
 
     //validate
-    check(prop.status == "drafting"_n, "proposal must be in drafting mode to launch");
+    check(prop.status == "approved"_n, "proposal must be approved by admin to begin voting");
     check(prop.total_requested_funds <= conf.max_requested, "total requested is more than maximum allowed");
     check(conf.deposited_funds >= newballot_fee, "not enough deposited funds");
 
