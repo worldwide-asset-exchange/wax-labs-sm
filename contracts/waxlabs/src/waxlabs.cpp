@@ -263,6 +263,7 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = name("voting");
+        col.ballot_name = ballot_name;
     });
 
     //update and set config
