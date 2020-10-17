@@ -1,0 +1,45 @@
+---
+stages:
+  - test
+  - prod
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+
+build-test-deploy-testnet:
+  script:
+    # compile sc
+    - chmod +x build.sh && chmod +x deploy.sh
+    - ./build.sh labs
+    # run tests
+    - echo "insert Hydra here. https://docs.klevoya.com/"
+    # unlock build server wallet
+    - cleos wallet lock
+    - cat ~/wallet.pw  | cleos wallet unlock --password
+    # update smart contract on chain
+    - ./deploy.sh labs labs testnet
+  stage: test
+  artifacts:
+    paths:
+      - oig/build/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "testnet"'
+
+build-test-deploy-mainnet:
+  script:
+    # compile sc
+    - eosio-cpp -abigen oig/src/oig.cpp -o oig/build/oig.wasm -I oig/include/
+    # run tests
+    - echo "insert Hydra here. https://docs.klevoya.com/"
+    # unlock build server wallet
+    - cleos wallet lock
+    - cat ~/wallet.pw  | cleos wallet unlock --password
+    # update smart contract on chain
+    - cleos -u https://wax.greymass.com set contract oig oig/build/ oig.wasm oig.abi -p oig@deploy
+  stage: prod
+  artifacts:
+    paths:
+      - oig/build/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
