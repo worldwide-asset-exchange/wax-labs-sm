@@ -11,18 +11,18 @@ build-test-deploy-testnet:
   script:
     # compile sc
     - chmod +x build.sh && chmod +x deploy.sh
-    - ./build.sh labs
+    - ./build.sh waxlabs
     # run tests
     - echo "insert Hydra here. https://docs.klevoya.com/"
     # unlock build server wallet
     - cleos wallet lock
     - cat ~/wallet.pw  | cleos wallet unlock --password
     # update smart contract on chain
-    - ./deploy.sh labs labs testnet
+    - ./deploy.sh waxlabs labs testnet
   stage: test
   artifacts:
     paths:
-      - oig/build/
+      - build/
   rules:
     - if: '$CI_COMMIT_BRANCH == "testnet"'
 
