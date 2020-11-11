@@ -197,6 +197,34 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
     });
 }
 
+ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title, 
+    optional<string> description, optional<string> content, optional<name> category)
+{
+    //open proposals table, get proposal
+    proposals_table proposals(get_self(), get_self().value);
+    auto& prop = proposals.get(proposal_id, "proposal not found");
+
+    //authenticate
+    require_auth(prop.proposer);
+
+    //validate
+    check(prop.status == name("drafting"), "proposal must be in drafting state to edit");
+
+    //assign
+    string new_title = (title) ? *title : prop.title;
+    string new_desc = (description) ? *description : prop.description;
+    string new_content = (content) ? *content : prop.content;
+    name new_category = (category) ? *category : prop.category;
+
+    //update proposal
+    proposals.modify(prop, same_payer, [&](auto& col) {
+        col.category = new_category;
+        col.title = new_title;
+        col.description = new_desc;
+        col.content = new_content;
+    });
+}
+
 ACTION waxlabs::submitprop(uint64_t proposal_id)
 {
     //open proposals table, get proposal

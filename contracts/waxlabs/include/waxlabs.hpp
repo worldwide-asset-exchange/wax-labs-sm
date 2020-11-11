@@ -73,6 +73,12 @@ CONTRACT waxlabs : public contract
     ACTION editprop(uint64_t proposal_id, optional<string> title, 
         optional<string> description, optional<string> content, optional<name> category);
 
+    //edit a proposal draft
+    //pre: proposal.status == drafting
+    //auth: proposer
+    ACTION editprop(uint64_t proposal_id, optional<string> title, 
+        optional<string> description, optional<string> content, optional<name> category);
+
     //submit a proposal draft for admin approval
     //pre: proposal.status == drafting
     //post: proposal.status == submitted
