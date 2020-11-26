@@ -11,6 +11,7 @@ build-test-deploy-testnet:
   script:
     # compile sc
     - chmod +x build.sh && chmod +x deploy.sh
+    - mkdir build
     - ./build.sh waxlabs
     # run tests
     - echo "insert Hydra here. https://docs.klevoya.com/"
