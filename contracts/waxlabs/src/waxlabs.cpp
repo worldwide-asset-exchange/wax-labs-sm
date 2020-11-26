@@ -1,5 +1,12 @@
 #include "../include/waxlabs.hpp"
 
+// ACTION waxlabs::clear(uint64_t id)
+// {
+//     require_auth(get_self());
+//     proposals_table proposals(get_self(), get_self().value);
+//     auto& prop = proposals.get(id, "proposal not found");
+//     proposals.erase(prop);
+// }
 
 //======================== config actions ========================
 
@@ -434,8 +441,13 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
         deliv_iter++;
     }
 
+<<<<<<< HEAD
     //Decide has the ballot only when proposal is in voting state
     if (initial_status == name("voting")) {
+=======
+    //if not in drafting mode
+    if (initial_status != name("drafting")) {
+>>>>>>> e66a658... bugfixes
         //send inline cancelballot to decide
         action(permission_level{get_self(), name("active")}, name("decide"), name("cancelballot"), make_tuple(
             prop.ballot_name, //ballot_name
