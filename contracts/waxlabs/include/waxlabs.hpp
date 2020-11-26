@@ -28,8 +28,8 @@ CONTRACT waxlabs : public contract
     static constexpr symbol VOTE_SYM = symbol("VOTE", 8);
 
     const uint8_t MAX_DELIVERABLES = 20;
-    ACTION clearconf();
-    ACTION addconf();
+    //ACTION clearconf();
+    //ACTION addconf();
 
     // ACTION clear(uint64_t id);
 
