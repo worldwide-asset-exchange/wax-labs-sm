@@ -1,36 +1,36 @@
 #include "../include/waxlabs.hpp"
 
-ACTION waxlabs::clearconf()
-{
-    require_auth(get_self());
-    config_singleton configs(get_self(), get_self().value);
-    configs.remove();
-}
-
-// ACTION waxlabs::addconf()
+// ACTION waxlabs::clearconf()
 // {
 //     require_auth(get_self());
 //     config_singleton configs(get_self(), get_self().value);
-//     config initial_conf;
-//     initial_conf.contract_name = "WAX Labs";
-//     initial_conf.contract_version = "v0.1.0";
-//     initial_conf.admin_acct = name("oigoigtest11");
-//     initial_conf.last_proposal_id = 6;
-//     initial_conf.available_funds = asset(110'00000000, WAX_SYM); //110.00000000 WAX
-//     initial_conf.reserved_funds = asset(2000'00000000, WAX_SYM); //2000.00000000 WAX
-//     initial_conf.deposited_funds = asset(10080'00000000); //1080.00000000 WAX
-//     initial_conf.paid_funds = asset(1000'00000000); //1000.00000000 WAX
-//     initial_conf.vote_duration = 60;
-//     configs.set(initial_conf, get_self());
+//     configs.remove();
 // }
 
-ACTION waxlabs::clear(uint64_t id)
+ACTION waxlabs::addconf()
 {
     require_auth(get_self());
-    proposals_table proposals(get_self(), get_self().value);
-    auto& prop = proposals.get(id, "proposal not found");
-    proposals.erase(prop);
+    config_singleton configs(get_self(), get_self().value);
+    config initial_conf;
+    initial_conf.contract_name = "WAX Labs";
+    initial_conf.contract_version = "v0.1.0";
+    initial_conf.admin_acct = name("oigoigtest11");
+    initial_conf.last_proposal_id = 6;
+    initial_conf.available_funds = asset(110'00000000, WAX_SYM); //110.00000000 WAX
+    initial_conf.reserved_funds = asset(2000'00000000, WAX_SYM); //2000.00000000 WAX
+    initial_conf.deposited_funds = asset(10080'00000000, WAX_SYM); //1080.00000000 WAX
+    initial_conf.paid_funds = asset(1000'00000000, WAX_SYM); //1000.00000000 WAX
+    initial_conf.vote_duration = 60;
+    configs.set(initial_conf, get_self());
 }
+
+// ACTION waxlabs::clear(uint64_t id)
+// {
+//     require_auth(get_self());
+//     proposals_table proposals(get_self(), get_self().value);
+//     auto& prop = proposals.get(id, "proposal not found");
+//     proposals.erase(prop);
+// }
 
 //======================== config actions ========================
 
@@ -157,7 +157,12 @@ ACTION waxlabs::rmvcategory(name category_name)
 //======================== proposal actions ========================
 
 ACTION waxlabs::draftprop(string title, string description, string content, name proposer, 
+<<<<<<< HEAD
     name category, asset total_requested_funds)
+=======
+    string image_url, uint32_t estimated_time,
+    name category, asset total_requested_funds, uint8_t deliverables_count)
+>>>>>>> da8974e... migration push
 {
     //authenticate
     require_auth(proposer);
@@ -179,12 +184,13 @@ ACTION waxlabs::draftprop(string title, string description, string content, name
     check(total_requested_funds.amount > 0, "requested amount must be greater than zero");
     check(total_requested_funds.symbol == WAX_SYM, "requested amount must be denominated in WAX");
     check(cat_itr != conf.categories.end(), "invalid category");
+    check(estimated_time > 0, "estimated time must be greater than zero");
 
     //open proposals table
     proposals_table proposals(get_self(), get_self().value);
 
     //initialize
-    uint64_t new_proposal_id = proposals.available_primary_key();
+    uint64_t new_proposal_id = conf.last_proposal_id + 1;
 
     //create new proposal
     //ram payer: contract
@@ -195,11 +201,14 @@ ACTION waxlabs::draftprop(string title, string description, string content, name
         col.title = title;
         col.description = description;
         col.content = content;
+        col.image_url = image_url;
+        col.estimated_time = estimated_time;
         col.total_requested_funds = total_requested_funds;
         col.deliverables = 0;
     });
 }
 
+<<<<<<< HEAD
 ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title, 
     optional<string> description, optional<string> content, optional<name> category)
 {
@@ -226,10 +235,32 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
         col.description = new_desc;
         col.content = new_content;
     });
+=======
+    //create each deliverable
+    for (uint8_t i = 1; i <= deliverables_count; i++) {
+        //open deliverables table
+        deliverables_table deliverables(get_self(), new_proposal_id);
+
+        //create deliverable
+        //ram payer: contract
+        deliverables.emplace(get_self(), [&](auto& col) {
+            col.deliverable_id = uint64_t(i);
+            col.requested = per_deliverable;
+            col.recipient = proposer;
+        });
+    }
+
+    //update config
+    conf.last_proposal_id = new_proposal_id;
+
+    //set updated config
+    configs.set(conf, get_self());
+>>>>>>> da8974e... migration push
 }
 
 ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title, 
-    optional<string> description, optional<string> content, optional<name> category)
+    optional<string> description, optional<string> content, optional<name> category,
+    string image_url, uint32_t estimated_time)
 {
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
@@ -240,6 +271,7 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
 
     //validate
     check(prop.status == name("drafting"), "proposal must be in drafting state to edit");
+    check(estimated_time > 0, "estimated time must be greater than zero");
 
     //assign
     string new_title = (title) ? *title : prop.title;
@@ -253,6 +285,8 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
         col.title = new_title;
         col.description = new_desc;
         col.content = new_content;
+        col.image_url = image_url;
+        col.estimated_time = estimated_time;
     });
 }
 

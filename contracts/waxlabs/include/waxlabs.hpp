@@ -29,9 +29,9 @@ CONTRACT waxlabs : public contract
 
     const uint8_t MAX_DELIVERABLES = 20;
     ACTION clearconf();
-    // ACTION addconf();
+    ACTION addconf();
 
-    ACTION clear(uint64_t id);
+    // ACTION clear(uint64_t id);
 
     //======================== config actions ========================
 
@@ -69,6 +69,7 @@ CONTRACT waxlabs : public contract
     //pre: config.available_funds >= total_requested_funds, valid category
     //auth: proposer
     ACTION draftprop(string title, string description, string content, name proposer, 
+<<<<<<< HEAD
         name category, asset total_requested_funds);
 
     //edit a proposal draft
@@ -76,12 +77,17 @@ CONTRACT waxlabs : public contract
     //auth: proposer
     ACTION editprop(uint64_t proposal_id, optional<string> title, 
         optional<string> description, optional<string> content, optional<name> category);
+=======
+        string image_url, uint32_t estimated_time,
+        name category, asset total_requested_funds, uint8_t deliverables_count);
+>>>>>>> da8974e... migration push
 
     //edit a proposal draft
     //pre: proposal.status == drafting
     //auth: proposer
     ACTION editprop(uint64_t proposal_id, optional<string> title, 
-        optional<string> description, optional<string> content, optional<name> category);
+        optional<string> description, optional<string> content, optional<name> category,
+        string image_url, uint32_t estimated_time);
 
     //submit a proposal draft for admin approval
     //pre: proposal.status == drafting
@@ -222,7 +228,7 @@ CONTRACT waxlabs : public contract
         string contract_version; //semver compliant contract version
         name admin_acct; //account that can approve proposals for voting
         name admin_auth = name("active"); //required permission for admin actions
-        // uint64_t last_proposal_id; //last proposal id created
+        uint64_t last_proposal_id; //last proposal id created
         asset available_funds = asset(0, WAX_SYM); //total available funding for proposals
         asset reserved_funds = asset(0, WAX_SYM); //total funding reserved by approved proposals
         asset deposited_funds = asset(0, WAX_SYM); //total deposited funds made by accounts
@@ -234,7 +240,7 @@ CONTRACT waxlabs : public contract
         asset max_requested = asset(500000'00000000, WAX_SYM); //maximum total reqeuested amount for proposals (default is 500k WAX)
         vector<name> categories = { name("marketing"), name("apps"), name("developers"), name("education"), name("games") }; //list of approved proposal categories
 
-        EOSLIB_SERIALIZE(config, (contract_name)(contract_version)(admin_acct)(admin_auth)
+        EOSLIB_SERIALIZE(config, (contract_name)(contract_version)(admin_acct)(admin_auth)(last_proposal_id)
             (available_funds)(reserved_funds)(deposited_funds)(paid_funds)
             (vote_duration)(quorum_threshold)(yes_threshold)
             (min_requested)(max_requested)(categories))
@@ -252,8 +258,8 @@ CONTRACT waxlabs : public contract
         string title; //proposal title
         string description; //short tweet-length description
         string content; //link to full proposal content
-        // string image_url; //link to image url
-        // string estimated_time; //estimated time to completion (in days)
+        string image_url; //link to image url
+        uint32_t estimated_time; //estimated time to completion (in days)
         asset total_requested_funds; //total funds requested
         asset remaining_funds = asset(0, WAX_SYM); //total remaining funds from total (set to total when approved)
         uint8_t deliverables; //total number of deliverables on project
@@ -267,7 +273,8 @@ CONTRACT waxlabs : public contract
         uint64_t by_status() const { return status.value; }
         uint64_t by_ballot() const { return ballot_name.value; }
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
-            (title)(description)(content)(total_requested_funds)(remaining_funds)
+            (title)(description)(content)(image_url)(estimated_time)
+            (total_requested_funds)(remaining_funds)
             (deliverables)(deliverables_completed)(reviewer)(ballot_results))
     };
     typedef multi_index<name("proposals"), proposal,
