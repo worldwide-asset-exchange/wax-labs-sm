@@ -28,7 +28,10 @@ CONTRACT waxlabs : public contract
     static constexpr symbol VOTE_SYM = symbol("VOTE", 8);
 
     const uint8_t MAX_DELIVERABLES = 20;
-    // ACTION clear(uint64_t id);
+    ACTION clearconf();
+    // ACTION addconf();
+
+    ACTION clear(uint64_t id);
 
     //======================== config actions ========================
 
@@ -219,6 +222,7 @@ CONTRACT waxlabs : public contract
         string contract_version; //semver compliant contract version
         name admin_acct; //account that can approve proposals for voting
         name admin_auth = name("active"); //required permission for admin actions
+        // uint64_t last_proposal_id; //last proposal id created
         asset available_funds = asset(0, WAX_SYM); //total available funding for proposals
         asset reserved_funds = asset(0, WAX_SYM); //total funding reserved by approved proposals
         asset deposited_funds = asset(0, WAX_SYM); //total deposited funds made by accounts
