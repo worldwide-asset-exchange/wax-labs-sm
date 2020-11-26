@@ -1,5 +1,13 @@
 #include "../include/waxlabs.hpp"
 
+// ACTION waxlabs::clear(uint64_t id)
+// {
+//     require_auth(get_self());
+//     proposals_table proposals(get_self(), get_self().value);
+//     auto& prop = proposals.get(id, "proposal not found");
+//     proposals.erase(prop);
+// }
+
 //======================== config actions ========================
 
 ACTION waxlabs::init(string contract_name, string contract_version, name initial_admin)
@@ -184,6 +192,34 @@ ACTION waxlabs::draftprop(string title, string description, string content, name
     }
 }
 
+ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title, 
+    optional<string> description, optional<string> content, optional<name> category)
+{
+    //open proposals table, get proposal
+    proposals_table proposals(get_self(), get_self().value);
+    auto& prop = proposals.get(proposal_id, "proposal not found");
+
+    //authenticate
+    require_auth(prop.proposer);
+
+    //validate
+    check(prop.status == name("drafting"), "proposal must be in drafting state to edit");
+
+    //assign
+    string new_title = (title) ? *title : prop.title;
+    string new_desc = (description) ? *description : prop.description;
+    string new_content = (content) ? *content : prop.content;
+    name new_category = (category) ? *category : prop.category;
+
+    //update proposal
+    proposals.modify(prop, same_payer, [&](auto& col) {
+        col.category = new_category;
+        col.title = new_title;
+        col.description = new_desc;
+        col.content = new_content;
+    });
+}
+
 ACTION waxlabs::submitprop(uint64_t proposal_id)
 {
     //open proposals table, get proposal
@@ -359,15 +395,23 @@ ACTION waxlabs::setreviewer(uint64_t proposal_id, uint64_t deliverable_id, name 
 
 ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
 {
+    //open config singleton, get config
+    config_singleton configs(get_self(), get_self().value);
+    auto conf = configs.get();
+
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
 
     //authenticate
-    require_auth(prop.proposer);
+    check(has_auth(prop.proposer) || has_auth(conf.admin_acct), "requires proposer or admin to authenticate");
+
+    //initialzie
+    name initial_status = prop.status;
 
     //validate
-    check(prop.status == name("submitted") || prop.status == name("approved") || prop.status == name("voting"), 
+    check(prop.status == name("drafting") || prop.status == name("submitted") || 
+        prop.status == name("approved") || prop.status == name("voting"), 
         "proposal must be in submitted, approved, or voting stages to cancel");
 
     //update proposal
@@ -387,11 +431,14 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
         });
     }
 
-    //send inline cancelballot to decide
-    action(permission_level{get_self(), name("active")}, name("decide"), name("cancelballot"), make_tuple(
-        prop.ballot_name, //ballot_name
-        string("WAX Labs Proposal Cancellation") //memo
-    )).send();
+    //if not in drafting mode
+    if (initial_status != name("drafting")) {
+        //send inline cancelballot to decide
+        action(permission_level{get_self(), name("active")}, name("decide"), name("cancelballot"), make_tuple(
+            prop.ballot_name, //ballot_name
+            string("WAX Labs Proposal Cancellation") //memo
+        )).send();
+    }
 }
 
 ACTION waxlabs::deleteprop(uint64_t proposal_id)
@@ -558,7 +605,8 @@ ACTION waxlabs::submitreport(uint64_t proposal_id, uint64_t deliverable_id, stri
 
     //validate
     check(prop.status == name("inprogress"), "must submit report when proposal is in progress");
-    check(deliv.status == name("inprogress"), "deliverable must be in progress to submit report");
+    check(deliv.status == name("inprogress") || deliv.status == name("rejected"), 
+        "deliverable must be in progress or rejected to submit/resubmit report");
     check(report != "", "report cannot be empty");
 
     //update deliverable
@@ -583,7 +631,7 @@ ACTION waxlabs::reviewdeliv(uint64_t proposal_id, uint64_t deliverable_id, bool 
 
     //validate
     check(prop.status == name("inprogress"), "proposal must be in progress to review deliverable");
-    check(deliv.status == name("reported") || deliv.status == name("rejected"), "deliverable must be reported or rejected to review");
+    check(deliv.status == name("reported"), "deliverable must be reported to review");
 
     //if accepted
     if (accept) {
@@ -639,6 +687,7 @@ ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = new_prop_status;
         col.remaining_funds -= deliv.requested;
+        col.deliverables_completed += 1;
     });
 
     //update and set conf
@@ -850,13 +899,23 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
             conf.reserved_funds += by_ballot_itr->total_requested_funds;
             configs.set(conf, get_self());
 
+            //loop over all deliverables
+            for (uint8_t i = 1; i <= by_ballot_itr->deliverables; i++) {
+                //open deliverables table, get deliverable
+                deliverables_table deliverables(get_self(), by_ballot_itr->proposal_id);
+                auto& deliv = deliverables.get(i, "deliverable not found");
+
+                //update deliverable status
+                deliverables.modify(deliv, same_payer, [&](auto& col) {
+                    col.status = name("inprogress");
+                });
+            }
+
             //update proposal
             proposals.modify(*by_ballot_itr, same_payer, [&](auto& col) {
                 col.status = name("inprogress");
                 col.remaining_funds = by_ballot_itr->total_requested_funds;
             });
-
-            //TODO: set all deliverables to inprogress
         } else {
             //update proposal
             proposals.modify(*by_ballot_itr, same_payer, [&](auto& col) {

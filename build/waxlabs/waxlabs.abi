@@ -268,6 +268,32 @@
             ]
         },
         {
+            "name": "editprop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "title",
+                    "type": "string?"
+                },
+                {
+                    "name": "description",
+                    "type": "string?"
+                },
+                {
+                    "name": "content",
+                    "type": "string?"
+                },
+                {
+                    "name": "category",
+                    "type": "name?"
+                }
+            ]
+        },
+        {
             "name": "endvoting",
             "base": "",
             "fields": [
@@ -670,6 +696,11 @@
         {
             "name": "editprofile",
             "type": "editprofile",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "editprop",
+            "type": "editprop",
             "ricardian_contract": ""
         },
         {

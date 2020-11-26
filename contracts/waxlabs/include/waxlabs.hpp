@@ -27,6 +27,8 @@ CONTRACT waxlabs : public contract
     static constexpr symbol WAX_SYM = symbol("WAX", 8);
     static constexpr symbol VOTE_SYM = symbol("VOTE", 8);
 
+    // ACTION clear(uint64_t id);
+
     //======================== config actions ========================
 
     //initialize the contract
@@ -64,6 +66,12 @@ CONTRACT waxlabs : public contract
     //auth: proposer
     ACTION draftprop(string title, string description, string content, name proposer, 
         name category, asset total_requested_funds, uint8_t deliverables_count);
+
+    //edit a proposal draft
+    //pre: proposal.status == drafting
+    //auth: proposer
+    ACTION editprop(uint64_t proposal_id, optional<string> title, 
+        optional<string> description, optional<string> content, optional<name> category);
 
     //submit a proposal draft for admin approval
     //pre: proposal.status == drafting
@@ -229,6 +237,8 @@ CONTRACT waxlabs : public contract
         string title; //proposal title
         string description; //short tweet-length description
         string content; //link to full proposal content
+        // string image_url; //link to image url
+        // string estimated_time; //estimated time to completion (in days)
         asset total_requested_funds; //total funds requested
         asset remaining_funds = asset(0, WAX_SYM); //total remaining funds from total (set to total when approved)
         uint8_t deliverables; //total number of deliverables on project
