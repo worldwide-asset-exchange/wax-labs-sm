@@ -822,8 +822,8 @@ void waxlabs::catch_transfer(name from, name to, asset quantity, string memo)
     //get initial receiver contract
     name rec = get_first_receiver();
 
-    //if notification from eosio.token, transfer not from self, and WAX symbol
-    if (rec == name("eosio.token") && from != get_self() && quantity.symbol == WAX_SYM) {
+    //if notification from eosio.token, transfer to self, and WAX symbol
+    if (rec == name("eosio.token") && to == get_self() && quantity.symbol == WAX_SYM) {
         //skips emplacement if memo is skip
         if (memo == std::string("skip")) { 
             return;
