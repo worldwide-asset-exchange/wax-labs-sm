@@ -420,15 +420,13 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     });
     
     //reject all deliverables
-    for (auto i = 1; i <= prop.deliverables; i++) {
-        //open deliverables table
-        deliverables_table deliverables(get_self(), proposal_id);
-        auto& deliv = deliverables.get(i, "deliverable not found");
-
-        //update deliverable
-        deliverables.modify(deliv, same_payer, [&](auto& col) {
+    deliverables_table deliverables(get_self(), proposal_id);
+    auto deliv_iter = deliverables.begin();
+    while( deliv_iter != deliverables.end() ) {
+        deliverables.modify(*deliv_iter, same_payer, [&](auto& col) {
             col.status = name("rejected");
         });
+        deliv_iter++;
     }
 
     //if not in drafting mode
@@ -469,13 +467,10 @@ ACTION waxlabs::deleteprop(uint64_t proposal_id)
     }
     
     //erase each deliverable
-    for (auto i = 1; i <= prop.deliverables; i++) {
-        //open deliverables table, get deliverable
-        deliverables_table deliverables(get_self(), proposal_id);
-        auto& deliv = deliverables.get(i, "deliverable not found");
-
-        //erase deliverable
-        deliverables.erase(deliv);
+    deliverables_table deliverables(get_self(), proposal_id);
+    auto deliv_iter = deliverables.begin();
+    while( deliv_iter != deliverables.end() ) {
+        deliv_iter = deliverables.erase(deliv_iter);
     }
 
     //erase proposal
@@ -900,15 +895,13 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
             configs.set(conf, get_self());
 
             //loop over all deliverables
-            for (uint8_t i = 1; i <= by_ballot_itr->deliverables; i++) {
-                //open deliverables table, get deliverable
-                deliverables_table deliverables(get_self(), by_ballot_itr->proposal_id);
-                auto& deliv = deliverables.get(i, "deliverable not found");
-
-                //update deliverable status
-                deliverables.modify(deliv, same_payer, [&](auto& col) {
+            deliverables_table deliverables(get_self(), by_ballot_itr->proposal_id);
+            auto deliv_iter = deliverables.begin();
+            while( deliv_iter != deliverables.end() ) {
+                deliverables.modify(*deliv_iter, same_payer, [&](auto& col) {
                     col.status = name("inprogress");
                 });
+                deliv_iter++;
             }
 
             //update proposal
