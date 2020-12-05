@@ -29,8 +29,6 @@ CONTRACT waxlabs : public contract
 
     const uint8_t MAX_DELIVERABLES = 20;
 
-    // ACTION clear(uint64_t id);
-
     //======================== config actions ========================
 
     //initialize the contract
