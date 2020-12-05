@@ -1,37 +1,5 @@
 #include "../include/waxlabs.hpp"
 
-// ACTION waxlabs::clearconf()
-// {
-//     require_auth(get_self());
-//     config_singleton configs(get_self(), get_self().value);
-//     configs.remove();
-// }
-
-// ACTION waxlabs::addconf()
-// {
-//     require_auth(get_self());
-//     config_singleton configs(get_self(), get_self().value);
-//     config initial_conf;
-//     initial_conf.contract_name = "WAX Labs";
-//     initial_conf.contract_version = "v0.1.0";
-//     initial_conf.admin_acct = name("oigoigtest11");
-//     initial_conf.last_proposal_id = 6;
-//     initial_conf.available_funds = asset(110'00000000, WAX_SYM); //110.00000000 WAX
-//     initial_conf.reserved_funds = asset(2000'00000000, WAX_SYM); //2000.00000000 WAX
-//     initial_conf.deposited_funds = asset(10080'00000000, WAX_SYM); //1080.00000000 WAX
-//     initial_conf.paid_funds = asset(1000'00000000, WAX_SYM); //1000.00000000 WAX
-//     initial_conf.vote_duration = 60;
-//     configs.set(initial_conf, get_self());
-// }
-
-// ACTION waxlabs::clear(uint64_t id)
-// {
-//     require_auth(get_self());
-//     proposals_table proposals(get_self(), get_self().value);
-//     auto& prop = proposals.get(id, "proposal not found");
-//     proposals.erase(prop);
-// }
-
 //======================== config actions ========================
 
 ACTION waxlabs::init(string contract_name, string contract_version, name initial_admin)
