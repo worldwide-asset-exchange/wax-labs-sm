@@ -27,6 +27,8 @@ CONTRACT waxlabs : public contract
     static constexpr symbol WAX_SYM = symbol("WAX", 8);
     static constexpr symbol VOTE_SYM = symbol("VOTE", 8);
 
+    const uint8_t MAX_DELIVERABLES = 20;
+
     // ACTION clear(uint64_t id);
 
     //======================== config actions ========================
@@ -65,7 +67,7 @@ CONTRACT waxlabs : public contract
     //pre: config.available_funds >= total_requested_funds, valid category
     //auth: proposer
     ACTION draftprop(string title, string description, string content, name proposer, 
-        name category, asset total_requested_funds, uint8_t deliverables_count);
+        name category, asset total_requested_funds);
 
     //edit a proposal draft
     //pre: proposal.status == drafting

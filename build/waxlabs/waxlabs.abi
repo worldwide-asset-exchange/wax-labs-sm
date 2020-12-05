@@ -204,10 +204,6 @@
                 {
                     "name": "total_requested_funds",
                     "type": "asset"
-                },
-                {
-                    "name": "deliverables_count",
-                    "type": "uint8"
                 }
             ]
         },

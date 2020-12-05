@@ -133,7 +133,7 @@ ACTION waxlabs::rmvcategory(name category_name)
 //======================== proposal actions ========================
 
 ACTION waxlabs::draftprop(string title, string description, string content, name proposer, 
-    name category, asset total_requested_funds, uint8_t deliverables_count)
+    name category, asset total_requested_funds)
 {
     //authenticate
     require_auth(proposer);
@@ -147,7 +147,6 @@ ACTION waxlabs::draftprop(string title, string description, string content, name
     auto& prof = profiles.get(proposer.value, "profile not found");
 
     //initialize
-    asset per_deliverable = asset(int64_t(total_requested_funds.amount / deliverables_count), WAX_SYM);
     auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), category);
 
     //validate
@@ -155,7 +154,6 @@ ACTION waxlabs::draftprop(string title, string description, string content, name
     check(total_requested_funds >= conf.min_requested, "requested amount is less than minimum requested amount");
     check(total_requested_funds.amount > 0, "requested amount must be greater than zero");
     check(total_requested_funds.symbol == WAX_SYM, "requested amount must be denominated in WAX");
-    check(deliverables_count > 0, "deliverables count must be greater than 0");
     check(cat_itr != conf.categories.end(), "invalid category");
 
     //open proposals table
@@ -174,22 +172,8 @@ ACTION waxlabs::draftprop(string title, string description, string content, name
         col.description = description;
         col.content = content;
         col.total_requested_funds = total_requested_funds;
-        col.deliverables = deliverables_count;
+        col.deliverables = 0;
     });
-
-    //create each deliverable
-    for (uint8_t i = 1; i <= deliverables_count; i++) {
-        //open deliverables table
-        deliverables_table deliverables(get_self(), new_proposal_id);
-
-        //create deliverable
-        //ram payer: contract
-        deliverables.emplace(get_self(), [&](auto& col) {
-            col.deliverable_id = uint64_t(i);
-            col.requested = per_deliverable;
-            col.recipient = proposer;
-        });
-    }
 }
 
 ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title, 
@@ -488,12 +472,10 @@ ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset re
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
+    check(prop.deliverables < MAX_DELIVERABLES, "too many deliverables");
 
     //authenticate
     require_auth(prop.proposer);
-
-    //open deliverables table
-    deliverables_table deliverables(get_self(), proposal_id);
 
     //validate
     check(prop.status == name("drafting"), "proposal must be in drafting state to add deliverable");
@@ -503,6 +485,7 @@ ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset re
 
     //add new deliverable
     //ram payer: contract
+    deliverables_table deliverables(get_self(), proposal_id);
     deliverables.emplace(get_self(), [&](auto& col) {
         col.deliverable_id = deliverable_id;
         col.requested = requested_amount;
