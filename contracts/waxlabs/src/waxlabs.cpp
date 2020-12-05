@@ -413,7 +413,7 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
         deliv_iter++;
     }
 
-    //if not in drafting mode
+    //Decide has the ballot only when proposal is in voting state
     if (initial_status == name("voting")) {
         //send inline cancelballot to decide
         action(permission_level{get_self(), name("active")}, name("decide"), name("cancelballot"), make_tuple(
