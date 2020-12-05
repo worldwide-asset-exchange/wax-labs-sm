@@ -237,11 +237,13 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
         //update proposal to approved
         proposals.modify(prop, same_payer, [&](auto& col) {
             col.status = name("approved");
+            col.status_comment = memo;
         });
     } else {
         //update proposal to failed
         proposals.modify(prop, same_payer, [&](auto& col) {
             col.status = name("failed");
+            col.status_comment = memo;
         });
     }
 }
@@ -276,6 +278,7 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = name("voting");
+        col.status_comment = "";
         col.ballot_name = ballot_name;
     });
 
@@ -394,6 +397,7 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = name("cancelled");
+        col.status_comment = memo;
     });
     
     //reject all deliverables
@@ -402,6 +406,7 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     while( deliv_iter != deliverables.end() ) {
         deliverables.modify(*deliv_iter, same_payer, [&](auto& col) {
             col.status = name("rejected");
+            col.status_comment = memo;
         });
         deliv_iter++;
     }
@@ -615,6 +620,7 @@ ACTION waxlabs::submitreport(uint64_t proposal_id, uint64_t deliverable_id, stri
     deliverables.modify(deliv, same_payer, [&](auto& col) {
         col.status = name("reported");
         col.report = report;
+        col.status_comment = "";
     });
 }
 
@@ -641,12 +647,14 @@ ACTION waxlabs::reviewdeliv(uint64_t proposal_id, uint64_t deliverable_id, bool 
         deliverables.modify(deliv, same_payer, [&](auto& col) {
             col.status = name("accepted");
             col.review_time = time_point_sec(current_time_point());
+            col.status_comment = memo;
         });
     } else {
         //update deliverable
         deliverables.modify(deliv, same_payer, [&](auto& col) {
             col.status = name("rejected");
             col.review_time = time_point_sec(current_time_point());
+            col.status_comment = memo;
         });
     }
 }
@@ -675,6 +683,7 @@ ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
     //update deliverable
     deliverables.modify(deliv, same_payer, [&](auto& col) {
         col.status = name("claimed");
+        col.status_comment = "";
     });
 
     //initialize
@@ -914,12 +923,14 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
             //update proposal
             proposals.modify(*by_ballot_itr, same_payer, [&](auto& col) {
                 col.status = name("inprogress");
+                col.status_comment = "voting finished";
                 col.remaining_funds = by_ballot_itr->total_requested_funds;
             });
         } else {
             //update proposal
             proposals.modify(*by_ballot_itr, same_payer, [&](auto& col) {
                 col.status = name("failed");
+                col.status_comment = "insufficient votes";
             });
         }
     }

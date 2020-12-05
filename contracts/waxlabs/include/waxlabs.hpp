@@ -249,6 +249,8 @@ CONTRACT waxlabs : public contract
         uint8_t deliverables_completed = 0; //total deliverables accepted by reviewer and claimed
         name reviewer = name(0); //account name reviewing the deliverables (blank until reviewer selected)
         map<name, asset> ballot_results = { { name("yes"), asset(0, VOTE_SYM) }, { name("no"), asset(0, VOTE_SYM) } }; //final ballot results from decide
+        string status_comment; //human readable explanation for status change
+
 
         uint64_t primary_key() const { return proposal_id; }
         uint64_t by_proposer() const { return proposer.value; }
@@ -257,7 +259,7 @@ CONTRACT waxlabs : public contract
         uint64_t by_ballot() const { return ballot_name.value; }
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
             (title)(description)(content)(total_requested_funds)(remaining_funds)
-            (deliverables)(deliverables_completed)(reviewer)(ballot_results))
+            (deliverables)(deliverables_completed)(reviewer)(ballot_results)(status_comment))
     };
     typedef multi_index<name("proposals"), proposal,
         indexed_by<name("byproposer"), const_mem_fun<proposal, uint64_t, &proposal::by_proposer>>,
@@ -275,10 +277,11 @@ CONTRACT waxlabs : public contract
         name recipient; //account that will receive the funds
         string report = ""; //raw text or link to report for deliverable
         time_point_sec review_time = time_point_sec(0); //time of review (set to genesis date by default)
+        string status_comment; //human readable explanation for status change
 
         uint64_t primary_key() const { return deliverable_id; }
         EOSLIB_SERIALIZE(deliverable, (deliverable_id)(status)(requested)
-            (recipient)(report)(review_time))
+            (recipient)(report)(review_time)(status_comment))
     };
     typedef multi_index<name("deliverables"), deliverable> deliverables_table;
 
