@@ -1004,21 +1004,3 @@ void waxlabs::add_balance(name account_owner, asset quantity)
     });
 }
 
-bool waxlabs::valid_category(name category)
-{
-    //check category name
-    switch (category.value) {
-        case (name("marketing").value):
-            return true;
-        case (name("apps").value):
-            return true;
-        case (name("developers").value):
-            return true;
-        case (name("education").value):
-            return true;
-        case (name("games").value):
-            return true;
-        default:
-            return false;
-    }
-}

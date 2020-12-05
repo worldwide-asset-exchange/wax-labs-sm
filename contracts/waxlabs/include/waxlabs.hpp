@@ -200,9 +200,6 @@ CONTRACT waxlabs : public contract
     //adds amount to balance
     void add_balance(name account_owner, asset quantity);
 
-    //returns true if category is valid
-    bool valid_category(name category);
-
     //returns true if vote passed quorum threshold
     // bool did_pass_quorum_thresh();
 
