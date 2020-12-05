@@ -414,7 +414,7 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     }
 
     //if not in drafting mode
-    if (initial_status != name("drafting")) {
+    if (initial_status == name("voting")) {
         //send inline cancelballot to decide
         action(permission_level{get_self(), name("active")}, name("decide"), name("cancelballot"), make_tuple(
             prop.ballot_name, //ballot_name
