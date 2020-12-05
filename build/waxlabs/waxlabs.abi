@@ -634,6 +634,16 @@
             ]
         },
         {
+            "name": "wipeprops",
+            "base": "",
+            "fields": [
+                {
+                    "name": "count",
+                    "type": "uint32"
+                }
+            ]
+        },
+        {
             "name": "withdraw",
             "base": "",
             "fields": [
@@ -772,6 +782,11 @@
         {
             "name": "submitreport",
             "type": "submitreport",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "wipeprops",
+            "type": "wipeprops",
             "ricardian_contract": ""
         },
         {

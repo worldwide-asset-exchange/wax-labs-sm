@@ -113,6 +113,10 @@ CONTRACT waxlabs : public contract
     //auth: proposer or admin_acct
     ACTION deleteprop(uint64_t proposal_id);
 
+    //temporary action that wipes the RAM tables
+    // auth: _self
+    ACTION wipeprops(uint32_t count);
+    
     //======================== deliverable actions ========================
 
     //adds a new deliverable to a proposal
