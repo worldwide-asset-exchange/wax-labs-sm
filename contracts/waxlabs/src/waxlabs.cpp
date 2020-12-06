@@ -467,33 +467,6 @@ ACTION waxlabs::deleteprop(uint64_t proposal_id)
 }
 
 
-ACTION waxlabs::wipeprops(uint32_t count)
-{
-    config_singleton configs(get_self(), get_self().value);
-    auto conf = configs.get();
-    require_auth(conf.admin_acct);
-    
-    bool done_something = false;
-    proposals_table proposals(get_self(), get_self().value);
-    while (count > 0) {
-        count--;
-        auto prop_iter = proposals.begin();
-        if (prop_iter != proposals.end()) {
-            auto& prop = *prop_iter;
-            if(prop.status == name("drafting") || prop.status == name("submitted") || 
-               prop.status == name("approved") || prop.status == name("voting")) {
-              cancelprop(prop.proposal_id, "wiped");
-            }
-            else {
-              deleteprop(prop.proposal_id);
-            }
-
-            done_something = true;
-        }
-    }
-    
-    check(done_something, "nothing left to wipe");
-}
             
   
 
