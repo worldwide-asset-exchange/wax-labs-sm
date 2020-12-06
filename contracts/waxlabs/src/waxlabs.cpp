@@ -156,6 +156,10 @@ ACTION waxlabs::draftprop(string title, string description, string content, name
     //initialize
     uint64_t new_proposal_id = conf.last_proposal_id + 1;
 
+    // update last_proposal_id
+    conf.last_proposal_id = new_proposal_id;
+    configs.set(conf, get_self());
+
     //create new proposal
     //ram payer: contract
     proposals.emplace(get_self(), [&](auto& col) {
