@@ -258,7 +258,7 @@ CONTRACT waxlabs : public contract
         uint64_t by_status() const { return status.value; }
         uint64_t by_ballot() const { return ballot_name.value; }
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
-            (title)(description)(content)(total_requested_funds)(remaining_funds)
+            (title)(description)(content)(image_url)(estimated_time)(total_requested_funds)(remaining_funds)
             (deliverables)(deliverables_completed)(reviewer)(ballot_results)(status_comment))
     };
     typedef multi_index<name("proposals"), proposal,
