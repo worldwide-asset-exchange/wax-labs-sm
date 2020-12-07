@@ -13,7 +13,7 @@ using namespace std;
 using namespace eosio;
 
 //approved treasuries: VOTE
-//categories: marketing, apps, developers, education, games
+//categories: marketing, infra.tools, dev.tools, governance, other
 //proposal statuses: drafting, submitted, approved, voting, inprogress, failed, cancelled, completed
 //deliverable statuses: drafting, submitted, reported, accepted, rejected, claimed
 
@@ -217,7 +217,7 @@ CONTRACT waxlabs : public contract
         double yes_threshold = 65.0; //percent of yes votes to approve
         asset min_requested = asset(1000'00000000, WAX_SYM); //minimum total reqeuested amount for proposals (default is 1k WAX)
         asset max_requested = asset(500000'00000000, WAX_SYM); //maximum total reqeuested amount for proposals (default is 500k WAX)
-        vector<name> categories = { name("marketing"), name("apps"), name("developers"), name("education"), name("games") }; //list of approved proposal categories
+        vector<name> categories = { name("marketing"), name("infra.tools"), name("dev.tools"), name("governance"), name("other") }; //list of approved proposal categories
 
         EOSLIB_SERIALIZE(config, (contract_name)(contract_version)(admin_acct)(admin_auth)(last_proposal_id)
             (available_funds)(reserved_funds)(deposited_funds)(paid_funds)
