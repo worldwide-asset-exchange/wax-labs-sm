@@ -78,7 +78,7 @@ ACTION waxlabs::setduration(uint32_t new_vote_duration)
     configs.set(conf, get_self());
 }
 
-ACTION waxlabs::addcategory(name new_category)
+ACTION waxlabs::addcategory(string new_category)
 {
     //open config singleton, get config
     config_singleton configs(get_self(), get_self().value);
@@ -100,7 +100,7 @@ ACTION waxlabs::addcategory(name new_category)
     configs.set(conf, get_self());
 }
 
-ACTION waxlabs::rmvcategory(name category_name)
+ACTION waxlabs::rmvcategory(string category_name)
 {
     //open config singleton, get config
     config_singleton configs(get_self(), get_self().value);
@@ -126,7 +126,7 @@ ACTION waxlabs::rmvcategory(name category_name)
 
 ACTION waxlabs::draftprop(string title, string description, string content, name proposer, 
     string image_url, uint32_t estimated_time,
-    name category, asset total_requested_funds)
+    string category, asset total_requested_funds)
 {
     //authenticate
     require_auth(proposer);
@@ -177,7 +177,7 @@ ACTION waxlabs::draftprop(string title, string description, string content, name
 }
 
 ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title, 
-    optional<string> description, optional<string> content, optional<name> category,
+    optional<string> description, optional<string> content, optional<string> category,
     string image_url, uint32_t estimated_time)
 {
     //open proposals table, get proposal
@@ -195,7 +195,7 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
     string new_title = (title) ? *title : prop.title;
     string new_desc = (description) ? *description : prop.description;
     string new_content = (content) ? *content : prop.content;
-    name new_category = (category) ? *category : prop.category;
+    string new_category = (category) ? *category : prop.category;
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
