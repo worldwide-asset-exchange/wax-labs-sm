@@ -25,7 +25,7 @@ build-test-deploy-testnet:
     paths:
       - build/
   rules:
-    - if: '$CI_COMMIT_BRANCH == "developer"'
+    - if: '$CI_COMMIT_BRANCH == "testnet"'
 
 build-test-deploy-mainnet:
   script:
