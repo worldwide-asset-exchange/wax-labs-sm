@@ -52,12 +52,12 @@ CONTRACT waxlabs : public contract
     //add a new proposal category
     //pre: new_category not in categories list
     //auth: admin_acct
-    ACTION addcategory(string new_category);
+    ACTION addcategory(name new_category);
 
     //remove a proposal category (existing proposals in category are not affected)
     //pre: category_name exists in categories list
     //auth: admin_acct
-    ACTION rmvcategory(string category_name);
+    ACTION rmvcategory(name category_name);
 
     //======================== proposal actions ========================
 
@@ -66,13 +66,13 @@ CONTRACT waxlabs : public contract
     //auth: proposer
     ACTION draftprop(string title, string description, string content, name proposer, 
         string image_url, uint32_t estimated_time,
-        string category, asset total_requested_funds);
+        name category, asset total_requested_funds);
 
     //edit a proposal draft
     //pre: proposal.status == drafting
     //auth: proposer
     ACTION editprop(uint64_t proposal_id, optional<string> title, 
-        optional<string> description, optional<string> content, optional<string> category,
+        optional<string> description, optional<string> content, optional<name> category,
         string image_url, uint32_t estimated_time);
 
     //submit a proposal draft for admin approval
@@ -217,7 +217,7 @@ CONTRACT waxlabs : public contract
         double yes_threshold = 65.0; //percent of yes votes to approve
         asset min_requested = asset(1000'00000000, WAX_SYM); //minimum total reqeuested amount for proposals (default is 1k WAX)
         asset max_requested = asset(500000'00000000, WAX_SYM); //maximum total reqeuested amount for proposals (default is 500k WAX)
-        vector<string> categories = { "marketing", "apps", "developers", "education", "games" }; //list of approved proposal categories
+        vector<name> categories = { name("marketing"), name("apps"), name("developers"), name("education"), name("games") }; //list of approved proposal categories
 
         EOSLIB_SERIALIZE(config, (contract_name)(contract_version)(admin_acct)(admin_auth)(last_proposal_id)
             (available_funds)(reserved_funds)(deposited_funds)(paid_funds)
@@ -231,7 +231,7 @@ CONTRACT waxlabs : public contract
     TABLE proposal {
         uint64_t proposal_id; //unique id of proposal
         name proposer; //account name making proposal
-        string category; //marketing, apps, developers, education
+        name category; //marketing, apps, developers, education
         name status = name("drafting"); //drafting, submitted, approved, voting, inprogress, failed, cancelled, completed
         name ballot_name = name(0); //name of decide ballot in voting phase (blank until voting begins)
         string title; //proposal title
@@ -250,7 +250,7 @@ CONTRACT waxlabs : public contract
 
         uint64_t primary_key() const { return proposal_id; }
         uint64_t by_proposer() const { return proposer.value; }
-        uint64_t by_category() const { return category; }
+        uint64_t by_category() const { return category.value; }
         uint64_t by_status() const { return status.value; }
         uint64_t by_ballot() const { return ballot_name.value; }
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
