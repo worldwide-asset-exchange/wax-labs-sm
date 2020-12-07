@@ -250,7 +250,7 @@ CONTRACT waxlabs : public contract
 
         uint64_t primary_key() const { return proposal_id; }
         uint64_t by_proposer() const { return proposer.value; }
-        string by_category() const { return category; }
+        uint64_t by_category() const { return category; }
         uint64_t by_status() const { return status.value; }
         uint64_t by_ballot() const { return ballot_name.value; }
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
@@ -259,7 +259,7 @@ CONTRACT waxlabs : public contract
     };
     typedef multi_index<name("proposals"), proposal,
         indexed_by<name("byproposer"), const_mem_fun<proposal, uint64_t, &proposal::by_proposer>>,
-        indexed_by<name("bycategory"), const_mem_fun<proposal, string, &proposal::by_category>>,
+        indexed_by<name("bycategory"), const_mem_fun<proposal, uint64_t, &proposal::by_category>>,
         indexed_by<name("bystatus"), const_mem_fun<proposal, uint64_t, &proposal::by_status>>,
         indexed_by<name("byballot"), const_mem_fun<proposal, uint64_t, &proposal::by_ballot>>
     > proposals_table;
