@@ -219,7 +219,8 @@ ACTION waxlabs::submitprop(uint64_t proposal_id)
 
     //validate
     check(prop.status == name("drafting"), "proposal must be in drafting state to submit");
-
+    check(prop.deliverables >= 1, "proposal must have at least one deliverable to submit");
+    
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = name("submitted");
@@ -527,7 +528,6 @@ ACTION waxlabs::rmvdeliv(uint64_t proposal_id, uint64_t deliverable_id)
 
     //validate
     check(prop.status == name("drafting"), "proposal must be in drafting state to remove deliverable");
-    check(prop.deliverables > 1, "proposal must have at least one deliverable");
     check(prop.total_requested_funds - deliv.requested > asset(0, WAX_SYM), "total requested amount cannot be at or below zero");
 
     //update proposal
