@@ -28,6 +28,20 @@ CONTRACT waxlabs : public contract
     static constexpr symbol VOTE_SYM = symbol("VOTE", 8);
 
     const uint8_t MAX_DELIVERABLES = 20;
+    const uint8_t MAX_CATEGORIES = 20;
+    const uint64_t MAX_PROPOSAL_ID = 0xFFFFFFFF;
+
+    enum class proposal_status : uint8_t {
+        drafting    = 1,
+        submitted   = 2,
+        approved    = 3,
+        voting      = 4,
+        inprogress  = 5,
+        failed      = 6,
+        cancelled   = 7,
+        completed   = 8,
+    };
+
 
     //======================== config actions ========================
 
@@ -64,14 +78,14 @@ CONTRACT waxlabs : public contract
     //draft a new wax labs proposal
     //pre: config.available_funds >= total_requested_funds, valid category
     //auth: proposer
-    ACTION draftprop(string title, string description, string content, name proposer, 
+    ACTION draftprop(string title, string description, string content, name proposer,
         string image_url, uint32_t estimated_time,
         name category, asset total_requested_funds);
 
     //edit a proposal draft
     //pre: proposal.status == drafting
     //auth: proposer
-    ACTION editprop(uint64_t proposal_id, optional<string> title, 
+    ACTION editprop(uint64_t proposal_id, optional<string> title,
         optional<string> description, optional<string> content, optional<name> category,
         string image_url, uint32_t estimated_time);
 
@@ -86,7 +100,7 @@ CONTRACT waxlabs : public contract
     //post: proposal.status == approved if approved, proposal.status == failed if rejected
     //auth: admin_acct
     ACTION reviewprop(uint64_t proposal_id, bool approve, string memo);
-    
+
     //begin voting period on a proposal
     //pre: proposal.status == drafting
     //auth: proposer
@@ -112,7 +126,7 @@ CONTRACT waxlabs : public contract
     //pre: proposal.status == failed || cancelled || completed
     //auth: proposer or admin_acct
     ACTION deleteprop(uint64_t proposal_id);
-    
+
     //======================== deliverable actions ========================
 
     //adds a new deliverable to a proposal
@@ -150,12 +164,12 @@ CONTRACT waxlabs : public contract
 
     //create a new profile
     //auth: wax_account
-    ACTION newprofile(name wax_account, string full_name, string country, string bio, 
+    ACTION newprofile(name wax_account, string full_name, string country, string bio,
         string image_url, string website, string contact);
 
     //edit an existing profile
     //auth: wax_account
-    ACTION editprofile(name wax_account, string full_name, string country, string bio, 
+    ACTION editprofile(name wax_account, string full_name, string country, string bio,
         string image_url, string website, string contact);
 
     //remove a profile
@@ -217,7 +231,7 @@ CONTRACT waxlabs : public contract
         double yes_threshold = 65.0; //percent of yes votes to approve
         asset min_requested = asset(1000'00000000, WAX_SYM); //minimum total reqeuested amount for proposals (default is 1k WAX)
         asset max_requested = asset(500000'00000000, WAX_SYM); //maximum total reqeuested amount for proposals (default is 500k WAX)
-        vector<name> categories = { name("marketing"), name("infra.tools"), name("dev.tools"), name("governance"), name("other") }; //list of approved proposal categories
+        vector<name> categories = { name("marketing"), name("infra.tools"), name("dev.tools"), name("governance"), name("other") };
 
         EOSLIB_SERIALIZE(config, (contract_name)(contract_version)(admin_acct)(admin_auth)(last_proposal_id)
             (available_funds)(reserved_funds)(deposited_funds)(paid_funds)
@@ -231,8 +245,8 @@ CONTRACT waxlabs : public contract
     TABLE proposal {
         uint64_t proposal_id; //unique id of proposal
         name proposer; //account name making proposal
-        name category; //marketing, apps, developers, education
-        name status = name("drafting"); //drafting, submitted, approved, voting, inprogress, failed, cancelled, completed
+        uint8_t category;
+        proposal_status status = proposal_status::drafting;
         name ballot_name = name(0); //name of decide ballot in voting phase (blank until voting begins)
         string title; //proposal title
         string description; //short tweet-length description
@@ -249,18 +263,26 @@ CONTRACT waxlabs : public contract
 
 
         uint64_t primary_key() const { return proposal_id; }
-        uint64_t by_proposer() const { return proposer.value; }
-        uint64_t by_category() const { return category.value; }
-        uint64_t by_status() const { return status.value; }
+
+        // Upper 16 bits: status, category; lower 32 bits: proposal_id
+        uint64_t by_status_and_category() const { return (((uint64_t)status << 56)|((uint64_t)category << 48)|proposal_id); }
+
+        // Upper 16 bits: category, status; lower 32 bits: proposal_id
+        uint64_t by_category_and_status() const { return (((uint64_t)category << 56)|((uint64_t)status << 48)|proposal_id); }
+
+        // Upper 64 bits: proposer account; bits 63-56: status; bits 31-0: proposal_id
+        uint128_t by_proposer() const { return (((uint128_t)proposer.value << 64)|((uint128_t)status << 56)|((uint128_t)proposal_id)); }
+
         uint64_t by_ballot() const { return ballot_name.value; }
+
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
             (title)(description)(content)(image_url)(estimated_time)(total_requested_funds)(remaining_funds)
             (deliverables)(deliverables_completed)(reviewer)(ballot_results)(status_comment))
     };
     typedef multi_index<name("proposals"), proposal,
-        indexed_by<name("byproposer"), const_mem_fun<proposal, uint64_t, &proposal::by_proposer>>,
-        indexed_by<name("bycategory"), const_mem_fun<proposal, uint64_t, &proposal::by_category>>,
-        indexed_by<name("bystatus"), const_mem_fun<proposal, uint64_t, &proposal::by_status>>,
+        indexed_by<name("bystatcat"), const_mem_fun<proposal, uint64_t, &proposal::by_status_and_category>>,
+        indexed_by<name("bycatstat"), const_mem_fun<proposal, uint64_t, &proposal::by_category_and_status>>,
+        indexed_by<name("byproposer"), const_mem_fun<proposal, uint128_t, &proposal::by_proposer>>,
         indexed_by<name("byballot"), const_mem_fun<proposal, uint64_t, &proposal::by_ballot>>
     > proposals_table;
 
@@ -328,7 +350,7 @@ CONTRACT waxlabs : public contract
         map<name, bool> settings;
 
         uint64_t primary_key() const { return supply.symbol.code().raw(); }
-        EOSLIB_SERIALIZE(treasury, 
+        EOSLIB_SERIALIZE(treasury,
             (supply)(max_supply)(access)(manager)
             (title)(description)(icon)
             (voters)(delegates)(committees)(open_ballots)
@@ -337,3 +359,12 @@ CONTRACT waxlabs : public contract
     typedef multi_index<name("treasuries"), treasury> treasuries_table;
 
 };
+
+
+/*
+  Local Variables:
+  mode: c++
+  c-default-style "linux"
+  c-basic-offset 4
+  End:
+*/
