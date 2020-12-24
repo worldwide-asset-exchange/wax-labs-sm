@@ -27,8 +27,11 @@ CONTRACT waxlabs : public contract
     static constexpr symbol WAX_SYM = symbol("WAX", 8);
     static constexpr symbol VOTE_SYM = symbol("VOTE", 8);
 
-    const uint8_t MAX_DELIVERABLES = 20;
-    const uint8_t MAX_CATEGORIES = 20;
+    const size_t  MAX_DELIVERABLES = 20;
+    const size_t  MAX_CATEGORIES = 20;
+    const size_t  MAX_DESCR_LEN = 160;
+    const size_t  MAX_BODY_LEN = 4096;
+
     const uint64_t MAX_PROPOSAL_ID = 0xFFFFFFFF;
 
     enum class proposal_status : uint8_t {
@@ -250,7 +253,6 @@ CONTRACT waxlabs : public contract
         name ballot_name = name(0); //name of decide ballot in voting phase (blank until voting begins)
         string title; //proposal title
         string description; //short tweet-length description
-        string content; //link to full proposal content
         string image_url; //link to image url
         uint32_t estimated_time; //estimated time to completion (in days)
         asset total_requested_funds; //total funds requested
@@ -289,6 +291,14 @@ CONTRACT waxlabs : public contract
         indexed_by<name("byreviewer"), const_mem_fun<proposal, uint128_t, &proposal::by_reviewer>>,
         indexed_by<name("byballot"), const_mem_fun<proposal, uint64_t, &proposal::by_ballot>>
     > proposals_table;
+
+    //mdbody table
+    //proposal content is stored in Markdown format in a separate table to save on deserialization costs
+    TABLE mdbody {
+        uint64_t proposal_id; //unique id of proposal
+        string content; //content in Markdown format
+    }
+    typedef multi_index<name("mdbodies"), mdbody> mdbodies_table;
 
     //deliverables table
     //scope: proposal_id

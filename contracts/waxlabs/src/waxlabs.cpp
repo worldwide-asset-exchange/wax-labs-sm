@@ -87,10 +87,9 @@ ACTION waxlabs::addcategory(name new_category)
     //authenticate
     require_auth(conf.admin_acct);
 
-    //initialize
-    auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), new_category);
-
     //validate
+    check(conf.categories.size() < MAX_CATEGORIES, "too many categorues defined");
+    auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), new_category);
     check(cat_itr == conf.categories.end(), "category name already exists");
 
     //add new category to categories list
