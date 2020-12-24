@@ -29,8 +29,10 @@ CONTRACT waxlabs : public contract
 
     const size_t  MAX_DELIVERABLES = 20;
     const size_t  MAX_CATEGORIES = 20;
+    const size_t  MAX_TITLE_LEN = 64;
     const size_t  MAX_DESCR_LEN = 160;
     const size_t  MAX_BODY_LEN = 4096;
+    const size_t  MAX_IMGURL_LEN = 256;
 
     const uint64_t MAX_PROPOSAL_ID = 0xFFFFFFFF;
 
@@ -44,6 +46,24 @@ CONTRACT waxlabs : public contract
         cancelled   = 7,
         completed   = 8,
     };
+
+    friend constexpr bool operator == ( const uint8_t& a, const proposal_status& b) {
+        return a == static_cast<uint8_t>(b);
+    }
+
+
+    enum class deliverable_status : uint8_t {
+        drafting = 1,
+        inprogress = 2,
+        reported = 3,
+        accepted = 4,
+        rejected = 5,
+        claimed = 6,
+    };
+
+    friend constexpr bool operator == ( const uint8_t& a, const deliverable_status& b) {
+        return a == static_cast<uint8_t>(b);
+    }
 
 
     //======================== config actions ========================
@@ -71,17 +91,12 @@ CONTRACT waxlabs : public contract
     //auth: admin_acct
     ACTION addcategory(name new_category);
 
-    //remove a proposal category (existing proposals in category are not affected)
-    //pre: category_name exists in categories list
-    //auth: admin_acct
-    ACTION rmvcategory(name category_name);
-
     //======================== proposal actions ========================
 
     //draft a new wax labs proposal
     //pre: config.available_funds >= total_requested_funds, valid category
     //auth: proposer
-    ACTION draftprop(string title, string description, string content, name proposer,
+    ACTION draftprop(string title, string description, string mdbody, name proposer,
         string image_url, uint32_t estimated_time,
         name category, asset total_requested_funds);
 
@@ -89,7 +104,7 @@ CONTRACT waxlabs : public contract
     //pre: proposal.status == drafting
     //auth: proposer
     ACTION editprop(uint64_t proposal_id, optional<string> title,
-        optional<string> description, optional<string> content, optional<name> category,
+        optional<string> description, optional<string> mdbody, optional<name> category,
         string image_url, uint32_t estimated_time);
 
     //submit a proposal draft for admin approval
@@ -249,7 +264,7 @@ CONTRACT waxlabs : public contract
         uint64_t proposal_id; //unique id of proposal
         name proposer; //account name making proposal
         uint8_t category;
-        proposal_status status = proposal_status::drafting;
+        uint8_t status = static_cast<uint8_t>(proposal_status::drafting);
         name ballot_name = name(0); //name of decide ballot in voting phase (blank until voting begins)
         string title; //proposal title
         string description; //short tweet-length description
@@ -281,7 +296,7 @@ CONTRACT waxlabs : public contract
         uint64_t by_ballot() const { return ballot_name.value; }
 
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
-            (title)(description)(content)(image_url)(estimated_time)(total_requested_funds)(remaining_funds)
+            (title)(description)(image_url)(estimated_time)(total_requested_funds)(remaining_funds)
             (deliverables)(deliverables_completed)(reviewer)(ballot_results)(status_comment))
     };
     typedef multi_index<name("proposals"), proposal,
@@ -297,14 +312,18 @@ CONTRACT waxlabs : public contract
     TABLE mdbody {
         uint64_t proposal_id; //unique id of proposal
         string content; //content in Markdown format
-    }
+
+        uint64_t primary_key() const { return proposal_id; }
+
+        EOSLIB_SERIALIZE(mdbody, (proposal_id)(content))
+    };
     typedef multi_index<name("mdbodies"), mdbody> mdbodies_table;
 
     //deliverables table
     //scope: proposal_id
     TABLE deliverable {
         uint64_t deliverable_id; //deliverable id
-        name status = name("drafting"); //drafting, submitted, reported, accepted, rejected, claimed
+        uint8_t status = static_cast<uint8_t>(deliverable_status::drafting);
         asset requested; //amount requested for deliverable
         name recipient; //account that will receive the funds
         string report = ""; //raw text or link to report for deliverable
@@ -378,7 +397,7 @@ CONTRACT waxlabs : public contract
 /*
   Local Variables:
   mode: c++
-  c-default-style "linux"
-  c-basic-offset 4
+  c-default-style: "linux"
+  c-basic-offset: 4
   End:
 */
