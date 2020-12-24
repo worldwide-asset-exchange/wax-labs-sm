@@ -273,6 +273,9 @@ CONTRACT waxlabs : public contract
         // Upper 64 bits: proposer account; bits 63-56: status; bits 31-0: proposal_id
         uint128_t by_proposer() const { return (((uint128_t)proposer.value << 64)|((uint128_t)status << 56)|((uint128_t)proposal_id)); }
 
+        // Upper 64 bits: reviewer account; bits 63-56: status; bits 31-0: proposal_id
+        uint128_t by_reviewer() const { return (((uint128_t)reviewer.value << 64)|((uint128_t)status << 56)|((uint128_t)proposal_id)); }
+
         uint64_t by_ballot() const { return ballot_name.value; }
 
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
@@ -283,6 +286,7 @@ CONTRACT waxlabs : public contract
         indexed_by<name("bystatcat"), const_mem_fun<proposal, uint64_t, &proposal::by_status_and_category>>,
         indexed_by<name("bycatstat"), const_mem_fun<proposal, uint64_t, &proposal::by_category_and_status>>,
         indexed_by<name("byproposer"), const_mem_fun<proposal, uint128_t, &proposal::by_proposer>>,
+        indexed_by<name("byreviewer"), const_mem_fun<proposal, uint128_t, &proposal::by_reviewer>>,
         indexed_by<name("byballot"), const_mem_fun<proposal, uint64_t, &proposal::by_ballot>>
     > proposals_table;
 
