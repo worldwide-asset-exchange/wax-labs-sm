@@ -99,27 +99,6 @@ ACTION waxlabs::addcategory(name new_category)
     configs.set(conf, get_self());
 }
 
-ACTION waxlabs::rmvcategory(name category_name)
-{
-    //open config singleton, get config
-    config_singleton configs(get_self(), get_self().value);
-    auto conf = configs.get();
-
-    //authenticate
-    require_auth(conf.admin_acct);
-
-    //initialize
-    auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), category_name);
-
-    //validate
-    check(cat_itr != conf.categories.end(), "category name not found");
-
-    //erase category from categories list
-    conf.categories.erase(cat_itr);
-
-    //set new config
-    configs.set(conf, get_self());
-}
 
 //======================== proposal actions ========================
 
