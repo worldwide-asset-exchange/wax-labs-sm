@@ -13,9 +13,7 @@ using namespace std;
 using namespace eosio;
 
 //approved treasuries: VOTE
-//categories: marketing, infra.tools, dev.tools, governance, other
-//proposal statuses: drafting, submitted, approved, voting, inprogress, failed, cancelled, completed
-//deliverable statuses: drafting, submitted, reported, accepted, rejected, claimed
+//categories added by default: marketing, infra.tools, dev.tools, governance, other
 
 CONTRACT waxlabs : public contract
 {
