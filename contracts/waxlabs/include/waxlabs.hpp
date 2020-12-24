@@ -86,10 +86,15 @@ CONTRACT waxlabs : public contract
     //auth: admin_acct
     ACTION setduration(uint32_t new_vote_duration);
 
-    //add a new proposal category
-    //pre: new_category not in categories list
+    //add a new proposal category or remove it from deprecated list
+    //pre: new_category not in categories list or in deprecated list
     //auth: admin_acct
     ACTION addcategory(name new_category);
+
+    //add a proposal category to deprecated list
+    //pre: category_name in categories list
+    //auth: admin_acct
+    ACTION rmvcategory(name category_name);
 
     //======================== proposal actions ========================
 
@@ -250,11 +255,12 @@ CONTRACT waxlabs : public contract
         asset min_requested = asset(1000'00000000, WAX_SYM); //minimum total reqeuested amount for proposals (default is 1k WAX)
         asset max_requested = asset(500000'00000000, WAX_SYM); //maximum total reqeuested amount for proposals (default is 500k WAX)
         vector<name> categories = { name("marketing"), name("infra.tools"), name("dev.tools"), name("governance"), name("other") };
+        vector<name> cat_deprecated; // list of categories unavailable for new proposals
 
         EOSLIB_SERIALIZE(config, (contract_name)(contract_version)(admin_acct)(admin_auth)(last_proposal_id)
             (available_funds)(reserved_funds)(deposited_funds)(paid_funds)
             (vote_duration)(quorum_threshold)(yes_threshold)
-            (min_requested)(max_requested)(categories))
+            (min_requested)(max_requested)(categories)(cat_deprecated))
     };
     typedef singleton<name("config"), config> config_singleton;
 

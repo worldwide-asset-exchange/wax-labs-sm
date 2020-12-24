@@ -87,18 +87,45 @@ ACTION waxlabs::addcategory(name new_category)
     //authenticate
     require_auth(conf.admin_acct);
 
-    //validate
-    check(conf.categories.size() < MAX_CATEGORIES, "too many categorues defined");
-    auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), new_category);
-    check(cat_itr == conf.categories.end(), "category name already exists");
+    //check if it's a deprecated categpry
+    auto depr_itr = std::find(conf.cat_deprecated.begin(), conf.cat_deprecated.end(), new_category);
+    if (depr_itr != conf.cat_deprecated.end()) {
+        conf.cat_deprecated.erase(depr_itr);
+    }
+    else {
+        check(conf.categories.size() < MAX_CATEGORIES, "too many categorues defined");
+        auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), new_category);
+        check(cat_itr == conf.categories.end(), "category name already exists");
 
-    //add new category to categories list
-    conf.categories.push_back(new_category);
+        //add new category to categories list
+        conf.categories.push_back(new_category);
+    }
 
     //set new config
     configs.set(conf, get_self());
 }
 
+ACTION waxlabs::rmvcategory(name category_name)
+{
+    //open config singleton, get config
+    config_singleton configs(get_self(), get_self().value);
+    auto conf = configs.get();
+
+    //authenticate
+    require_auth(conf.admin_acct);
+
+    //validate
+    auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), category_name);
+    check(cat_itr != conf.categories.end(), "category name not found");
+    auto depr_itr = std::find(conf.cat_deprecated.begin(), conf.cat_deprecated.end(), category_name);
+    check(depr_itr != conf.cat_deprecated.end(), "category name is already in deprecated list");
+
+    //add category to deprecated list
+    conf.cat_deprecated.push_back(category_name);
+
+    //set new config
+    configs.set(conf, get_self());
+}
 
 //======================== proposal actions ========================
 
@@ -119,6 +146,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
 
     //initialize
     auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), category);
+    auto depr_itr = std::find(conf.cat_deprecated.begin(), conf.cat_deprecated.end(), category);
 
     //validate
     check(title.length() <= MAX_TITLE_LEN, "title string is too long");
@@ -130,6 +158,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     check(total_requested_funds.amount > 0, "requested amount must be greater than zero");
     check(total_requested_funds.symbol == WAX_SYM, "requested amount must be denominated in WAX");
     check(cat_itr != conf.categories.end(), "invalid category");
+    check(depr_itr == conf.cat_deprecated.end(), "this category name is deprecated");
     check(estimated_time > 0, "estimated time must be greater than zero");
 
     size_t cat_pos = std::distance(conf.categories.begin(), cat_itr);
@@ -208,6 +237,8 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
     if (category) {
         auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), *category);
         check(cat_itr != conf.categories.end(), "invalid category");
+        auto depr_itr = std::find(conf.cat_deprecated.begin(), conf.cat_deprecated.end(), category);
+        check(depr_itr == conf.cat_deprecated.end(), "this category name is deprecated");
         new_category = std::distance(conf.categories.begin(), cat_itr);
     }
 
