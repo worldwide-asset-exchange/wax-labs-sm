@@ -130,8 +130,7 @@ ACTION waxlabs::rmvcategory(name category_name)
 //======================== proposal actions ========================
 
 ACTION waxlabs::draftprop(string title, string description, string mdbody, name proposer,
-    string image_url, uint32_t estimated_time,
-    name category, asset total_requested_funds)
+    string image_url, uint32_t estimated_time, name category)
 {
     //authenticate
     require_auth(proposer);
@@ -153,10 +152,6 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     check(description.length() <= MAX_DESCR_LEN, "description string is too long");
     check(mdbody.length() <= MAX_BODY_LEN, "body string is too long");
     check(image_url.length() <= MAX_IMGURL_LEN, "image URL string is too long");
-    check(total_requested_funds <= conf.max_requested, "requested amount exceeds allowed maximum requested amount");
-    check(total_requested_funds >= conf.min_requested, "requested amount is less than minimum requested amount");
-    check(total_requested_funds.amount > 0, "requested amount must be greater than zero");
-    check(total_requested_funds.symbol == WAX_SYM, "requested amount must be denominated in WAX");
     check(cat_itr != conf.categories.end(), "invalid category");
     check(depr_itr == conf.cat_deprecated.end(), "this category name is deprecated");
     check(estimated_time > 0, "estimated time must be greater than zero");
@@ -184,7 +179,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
         col.description = description;
         col.image_url = image_url;
         col.estimated_time = estimated_time;
-        col.total_requested_funds = total_requested_funds;
+        col.total_requested_funds = asset(0, WAX_SYM);
         col.deliverables = 0;
     });
 
@@ -258,6 +253,9 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
 
 ACTION waxlabs::submitprop(uint64_t proposal_id)
 {
+    config_singleton configs(get_self(), get_self().value);
+    auto conf = configs.get();
+
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
@@ -268,6 +266,8 @@ ACTION waxlabs::submitprop(uint64_t proposal_id)
     //validate
     check(prop.status == proposal_status::drafting, "proposal must be in drafting state to submit");
     check(prop.deliverables >= 1, "proposal must have at least one deliverable to submit");
+    check(prop.total_requested_funds >= conf.min_requested, "requested amount is less than minimum requested amount");
+    check(prop.total_requested_funds <= conf.max_requested, "total requested is more than maximum allowed");
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
@@ -334,7 +334,6 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
 
     //validate
     check(prop.status == proposal_status::approved, "proposal must be approved by admin to begin voting");
-    check(prop.total_requested_funds <= conf.max_requested, "total requested is more than maximum allowed");
     check(conf.deposited_funds >= newballot_fee, "not enough deposited funds");
 
     //update proposal

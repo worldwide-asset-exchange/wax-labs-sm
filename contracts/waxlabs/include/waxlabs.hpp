@@ -100,8 +100,7 @@ CONTRACT waxlabs : public contract
     //pre: config.available_funds >= total_requested_funds, valid category
     //auth: proposer
     ACTION draftprop(string title, string description, string mdbody, name proposer,
-        string image_url, uint32_t estimated_time,
-        name category, asset total_requested_funds);
+        string image_url, uint32_t estimated_time, name category);
 
     //edit a proposal draft
     //pre: proposal.status == drafting
