@@ -93,7 +93,7 @@ ACTION waxlabs::addcategory(name new_category)
         conf.cat_deprecated.erase(depr_itr);
     }
     else {
-        check(conf.categories.size() < MAX_CATEGORIES, "too many categorues defined");
+        check(conf.categories.size() < MAX_CATEGORIES, "too many categories defined");
         auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), new_category);
         check(cat_itr == conf.categories.end(), "category name already exists");
 
