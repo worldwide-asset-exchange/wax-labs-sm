@@ -175,8 +175,8 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     configs.set(conf, get_self());
 
     //create new proposal
-    //ram payer: contract
-    proposals.emplace(get_self(), [&](auto& col) {
+    //ram payer: proposer
+    proposals.emplace(proposer, [&](auto& col) {
         col.proposal_id = new_proposal_id;
         col.proposer = proposer;
         col.category = cat_pos;
@@ -188,7 +188,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
         col.deliverables = 0;
     });
 
-    mdbodies.emplace(get_self(), [&](auto& col) {
+    mdbodies.emplace(proposer, [&](auto& col) {
         col.proposal_id = new_proposal_id;
         col.content = mdbody;
     });
@@ -549,9 +549,9 @@ ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset re
     check(is_account(recipient), "recipient account doesn't exist");
 
     //add new deliverable
-    //ram payer: contract
+    //ram payer: proposer
     deliverables_table deliverables(get_self(), proposal_id);
-    deliverables.emplace(get_self(), [&](auto& col) {
+    deliverables.emplace(prop.proposer, [&](auto& col) {
         col.deliverable_id = deliverable_id;
         col.requested = requested_amount;
         col.recipient = recipient;
@@ -761,8 +761,8 @@ ACTION waxlabs::newprofile(name wax_account, string full_name, string country, s
     check(prof_itr == profiles.end(), "profile already exists");
 
     //create new profile
-    //ram payer: contract
-    profiles.emplace(get_self(), [&](auto& col) {
+    //ram payer: profile owner
+    profiles.emplace(wax_account, [&](auto& col) {
         col.wax_account = wax_account;
         col.full_name = full_name;
         col.country = country;
