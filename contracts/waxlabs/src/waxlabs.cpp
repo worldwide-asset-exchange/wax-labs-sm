@@ -544,7 +544,7 @@ ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset re
     //validate
     check(prop.status == proposal_status::drafting, "proposal must be in drafting state to add deliverable");
     check(requested_amount.amount > 0, "must request a positive amount");
-    check(prop.total_requested_funds + requested_amount <= conf.max_requested, "total requested funds ablove allowed maximum per proposal");
+    check(prop.total_requested_funds + requested_amount <= conf.max_requested, "total requested funds above allowed maximum per proposal");
     check(is_account(recipient), "recipient account doesn't exist");
 
     //add new deliverable
@@ -578,7 +578,7 @@ ACTION waxlabs::rmvdeliv(uint64_t proposal_id, uint64_t deliverable_id)
 
     //validate
     check(prop.status == proposal_status::drafting, "proposal must be in drafting state to remove deliverable");
-    check(prop.total_requested_funds - deliv.requested > asset(0, WAX_SYM), "total requested amount cannot be at or below zero");
+    check(prop.total_requested_funds - deliv.requested >= asset(0, WAX_SYM), "total requested amount cannot be below zero");
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
