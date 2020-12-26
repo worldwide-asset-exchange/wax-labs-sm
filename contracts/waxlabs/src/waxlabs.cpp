@@ -455,8 +455,8 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
           prop.status == proposal_status::approved || prop.status == proposal_status::voting,
           "proposal must be in submitted, approved, or voting stages to cancel");
 
-    //update proposal
-    proposals.modify(prop, same_payer, [&](auto& col) {
+    //update proposal. RAM payer=self because we write the memo
+    proposals.modify(prop, _self, [&](auto& col) {
         col.status = static_cast<uint8_t>(proposal_status::cancelled);
         col.status_comment = memo;
     });
@@ -465,7 +465,7 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     deliverables_table deliverables(get_self(), proposal_id);
     auto deliv_iter = deliverables.begin();
     while( deliv_iter != deliverables.end() ) {
-        deliverables.modify(*deliv_iter, same_payer, [&](auto& col) {
+        deliverables.modify(*deliv_iter, _self, [&](auto& col) {
             col.status = static_cast<uint8_t>(deliverable_status::rejected);
             col.status_comment = memo;
         });
