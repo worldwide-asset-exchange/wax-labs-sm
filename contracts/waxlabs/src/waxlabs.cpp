@@ -954,15 +954,15 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
                 deliv_iter++;
             }
 
-            //update proposal
-            proposals.modify(*by_ballot_itr, same_payer, [&](auto& col) {
+            //update proposal; rampayer=self because of inserting the string
+            proposals.modify(*by_ballot_itr, _self, [&](auto& col) {
                 col.status = static_cast<uint8_t>(proposal_status::inprogress);
                 col.status_comment = "voting finished";
                 col.remaining_funds = by_ballot_itr->total_requested_funds;
             });
         } else {
-            //update proposal
-            proposals.modify(*by_ballot_itr, same_payer, [&](auto& col) {
+            //update proposal; rampayer=self because of inserting the string
+            proposals.modify(*by_ballot_itr, _self, [&](auto& col) {
                 col.status = static_cast<uint8_t>(proposal_status::failed);
                 col.status_comment = "insufficient votes";
             });
