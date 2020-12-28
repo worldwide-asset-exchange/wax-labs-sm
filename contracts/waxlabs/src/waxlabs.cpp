@@ -491,6 +491,8 @@ ACTION waxlabs::deleteprop(uint64_t proposal_id)
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
+    mdbodies_table mdbodies(get_self(), get_self().value);
+    auto& body = mdbodies.get(proposal_id, "proposal not found in mbodies");
 
     //authenticate
     check(has_auth(prop.proposer) || has_auth(conf.admin_acct), "requires proposer or admin to authenticate");
@@ -519,6 +521,7 @@ ACTION waxlabs::deleteprop(uint64_t proposal_id)
 
     //erase proposal
     proposals.erase(prop);
+    mdbodies.erase(body);
 }
 
 
