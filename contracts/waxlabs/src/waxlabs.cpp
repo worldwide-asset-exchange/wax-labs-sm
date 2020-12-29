@@ -294,6 +294,8 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
 
     //if admin approved
     if (approve) {
+        //check if reviewer is set
+        check(is_account(prop.reviewer), "reviewer account needs to be set before approving");
         //update proposal to approved
         proposals.modify(prop, same_payer, [&](auto& col) {
             col.status = static_cast<uint8_t>(proposal_status::approved);
