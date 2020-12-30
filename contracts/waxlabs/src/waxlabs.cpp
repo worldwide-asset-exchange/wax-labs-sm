@@ -164,6 +164,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
 
     //initialize
     uint64_t new_proposal_id = conf.last_proposal_id + 1;
+    check(new_proposal_id <= MAX_PROPOSAL_ID, "too many proposals");
 
     // update last_proposal_id
     conf.last_proposal_id = new_proposal_id;
@@ -181,6 +182,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
         col.estimated_time = estimated_time;
         col.total_requested_funds = asset(0, WAX_SYM);
         col.deliverables = 0;
+        col.update_ts = time_point_sec(current_time_point());
     });
 
     mdbodies.emplace(proposer, [&](auto& col) {
@@ -244,6 +246,7 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
         col.description = new_desc;
         col.image_url = image_url;
         col.estimated_time = estimated_time;
+        col.update_ts = time_point_sec(current_time_point());
     });
 
     mdbodies.modify(body, same_payer, [&](auto& col) {
@@ -272,6 +275,7 @@ ACTION waxlabs::submitprop(uint64_t proposal_id)
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = static_cast<uint8_t>(proposal_status::submitted);
+        col.update_ts = time_point_sec(current_time_point());
     });
 
 }
@@ -300,12 +304,14 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
         proposals.modify(prop, same_payer, [&](auto& col) {
             col.status = static_cast<uint8_t>(proposal_status::approved);
             col.status_comment = memo;
+            col.update_ts = time_point_sec(current_time_point());
         });
     } else {
         //update proposal to failed
         proposals.modify(prop, same_payer, [&](auto& col) {
             col.status = static_cast<uint8_t>(proposal_status::failed);
             col.status_comment = memo;
+            col.update_ts = time_point_sec(current_time_point());
         });
     }
 }
@@ -343,6 +349,7 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
         col.status = static_cast<uint8_t>(proposal_status::voting);
         col.status_comment = "";
         col.ballot_name = ballot_name;
+        col.update_ts = time_point_sec(current_time_point());
     });
 
     //update and set config
@@ -433,6 +440,7 @@ ACTION waxlabs::setreviewer(uint64_t proposal_id, uint64_t deliverable_id, name 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.reviewer = new_reviewer;
+        col.update_ts = time_point_sec(current_time_point());
     });
 }
 
@@ -461,6 +469,7 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     proposals.modify(prop, _self, [&](auto& col) {
         col.status = static_cast<uint8_t>(proposal_status::cancelled);
         col.status_comment = memo;
+        col.update_ts = time_point_sec(current_time_point());
     });
 
     //reject all deliverables
@@ -565,6 +574,7 @@ ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset re
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.total_requested_funds += requested_amount;
         col.deliverables += 1;
+        col.update_ts = time_point_sec(current_time_point());
     });
 }
 
@@ -589,6 +599,7 @@ ACTION waxlabs::rmvdeliv(uint64_t proposal_id, uint64_t deliverable_id)
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.total_requested_funds -= deliv.requested;
         col.deliverables -= 1;
+        col.update_ts = time_point_sec(current_time_point());
     });
 
     //erase deliverable
@@ -633,6 +644,7 @@ ACTION waxlabs::editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset n
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.total_requested_funds = new_total_requested;
+        col.update_ts = time_point_sec(current_time_point());
     });
 }
 
@@ -738,6 +750,7 @@ ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
         col.status = new_prop_status;
         col.remaining_funds -= deliv.requested;
         col.deliverables_completed += 1;
+        col.update_ts = time_point_sec(current_time_point());
     });
 
     //update and set conf
@@ -964,12 +977,14 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
                 col.status = static_cast<uint8_t>(proposal_status::inprogress);
                 col.status_comment = "voting finished";
                 col.remaining_funds = by_ballot_itr->total_requested_funds;
+                col.update_ts = time_point_sec(current_time_point());
             });
         } else {
             //update proposal; rampayer=self because of inserting the string
             proposals.modify(*by_ballot_itr, _self, [&](auto& col) {
                 col.status = static_cast<uint8_t>(proposal_status::failed);
                 col.status_comment = "insufficient votes";
+                col.update_ts = time_point_sec(current_time_point());
             });
         }
     }
