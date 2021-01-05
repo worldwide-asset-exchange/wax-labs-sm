@@ -26,7 +26,7 @@ CONTRACT waxlabs : public contract
     static constexpr symbol VOTE_SYM = symbol("VOTE", 8);
 
     // Cost to be charged from balance, when draftprop() action is called.
-    const asset DRAFT_COST = asset(100, WAX_SYM);
+    const asset DRAFT_COST = asset(100'00000000, WAX_SYM);
 
     const size_t  MAX_DELIVERABLES = 20;
     const size_t  MAX_CATEGORIES = 20;
