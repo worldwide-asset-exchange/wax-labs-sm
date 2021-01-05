@@ -132,6 +132,7 @@ ACTION waxlabs::rmvcategory(name category_name)
 ACTION waxlabs::draftprop(string title, string description, string mdbody, name proposer,
     string image_url, uint32_t estimated_time, name category)
 {
+    check(0, "no luck");
     //authenticate
     require_auth(proposer);
 
