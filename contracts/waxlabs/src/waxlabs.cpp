@@ -156,6 +156,9 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     check(depr_itr == conf.cat_deprecated.end(), "this category name is deprecated");
     check(estimated_time > 0, "estimated time must be greater than zero");
 
+    //subtract DRAFT_COST from account balance
+    sub_balance(proposer, DRAFT_COST);
+
     size_t cat_pos = std::distance(conf.categories.begin(), cat_itr);
 
     //open tables

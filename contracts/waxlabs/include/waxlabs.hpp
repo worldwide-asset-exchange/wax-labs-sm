@@ -25,6 +25,9 @@ CONTRACT waxlabs : public contract
     static constexpr symbol WAX_SYM = symbol("WAX", 8);
     static constexpr symbol VOTE_SYM = symbol("VOTE", 8);
 
+    // Cost to be charged from balance, when draftprop() action is called.
+    const asset DRAFT_COST = asset(100, WAX_SYM);
+
     const size_t  MAX_DELIVERABLES = 20;
     const size_t  MAX_CATEGORIES = 20;
     const size_t  MAX_TITLE_LEN = 64;
@@ -97,7 +100,11 @@ CONTRACT waxlabs : public contract
     //======================== proposal actions ========================
 
     //draft a new wax labs proposal
-    //pre: config.available_funds >= total_requested_funds, valid category
+    //pre: valid category. category can't be in config cat_deprecated list.
+    // estimated time must be greater than 0.
+    // proposer must have a profile registered. 
+    // description, mdbody, image_url and title must not be bigger than max_len variables
+    // account must have more than 
     //auth: proposer
     ACTION draftprop(string title, string description, string mdbody, name proposer,
         string image_url, uint32_t estimated_time, name category);
