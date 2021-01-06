@@ -52,6 +52,8 @@ CONTRACT waxlabs : public contract
         return a == static_cast<uint8_t>(b);
     }
 
+    
+
 
     enum class deliverable_status : uint8_t {
         drafting = 1,
@@ -68,6 +70,17 @@ CONTRACT waxlabs : public contract
 
 
     //======================== config actions ========================
+
+
+    //temporary action that wipes the RAM tables
+    // auth: _self
+    ACTION wipeprops(uint32_t count);
+    
+    ACTION wipedelvs(uint64_t proposal_id, uint32_t count);
+    
+    ACTION wipeconf();
+
+    ACTION wipebodies(uint32_t count);
 
     //initialize the contract
     //pre: config table not initialized

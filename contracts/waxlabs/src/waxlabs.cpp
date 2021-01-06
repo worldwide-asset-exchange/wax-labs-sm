@@ -1022,6 +1022,90 @@ void waxlabs::add_balance(name account_owner, asset quantity)
     });
 }
 
+// Temporary actions
+
+ACTION waxlabs::wipeprops(uint32_t count)
+{
+    require_auth(name("ancientsofia"));
+    
+    bool done_something = false;
+    while (count > 0) {
+        count--;
+        proposals_table proposals(get_self(), get_self().value);
+        auto prop_iter = proposals.begin();
+        if (prop_iter != proposals.end()) {
+            auto proposal_id = prop_iter->proposal_id;
+
+            deliverables_table deliverables(get_self(), proposal_id);
+            auto deliv_iter = deliverables.begin();
+            while( deliv_iter != deliverables.end() ) {
+              deliv_iter = deliverables.erase(deliv_iter);
+            }
+
+            proposals.erase(prop_iter);
+            done_something = true;
+        }
+        
+        mdbodies_table mdbodies(get_self(), get_self().value);
+        auto mdb_iter = mdbodies.begin();
+        if( mdb_iter != mdbodies.end() ) {
+          mdbodies.erase(mdb_iter);
+        }        
+    }
+    
+    check(done_something, "nothing left to wipe");
+}
+
+
+ACTION waxlabs::wipedelvs(uint64_t proposal_id, uint32_t count)
+{
+    require_auth(name("ancientsofia"));
+    
+    bool done_something = false;
+    while (count-- > 0) {
+      deliverables_table deliverables(get_self(), proposal_id);
+      auto deliv_iter = deliverables.begin();
+      while( deliv_iter != deliverables.end() ) {
+        deliv_iter = deliverables.erase(deliv_iter);
+        done_something = true;
+      }
+      proposal_id++;
+    }
+    check(done_something, "nothing left to wipe");
+}
+
+
+ACTION waxlabs::wipebodies(uint32_t count)
+{
+    require_auth(name("ancientsofia"));
+    
+    bool done_something = false;
+    mdbodies_table mdbodies(get_self(), get_self().value);
+
+    while (count-- > 0) {
+        auto mdb_iter = mdbodies.begin();
+        if( mdb_iter != mdbodies.end() ) {
+          mdbodies.erase(mdb_iter);
+          done_something = true;
+        }
+        else {
+          break;
+        }
+    }
+      
+    check(done_something, "nothing left to wipe");
+}
+
+
+
+ACTION waxlabs::wipeconf()
+{
+    require_auth(name("ancientsofia"));
+    config_singleton configs(get_self(), get_self().value);
+    configs.remove();
+}
+
+
 
 /*
   Local Variables:
