@@ -895,23 +895,8 @@ void waxlabs::catch_transfer(name from, name to, asset quantity, string memo)
             conf.available_funds += quantity;
             configs.set(conf, get_self());
         } else {
-            //open accounts table, search for account
-            accounts_table accounts(get_self(), from.value);
-            auto acct = accounts.find(WAX_SYM.code().raw());
-
-            //emplace account if not found, update if exists
-            if (acct == accounts.end()) {
-                //make new account
-                accounts.emplace(get_self(), [&](auto& col) {
-                    col.balance = quantity;
-                });
-            } else {
-                //update existing account
-                accounts.modify(*acct, same_payer, [&](auto& col) {
-                    col.balance += quantity;
-                });
-
-            }
+            //update account balance
+            add_balance(from, quantity);
 
             //update config funds
             conf.deposited_funds += quantity;
@@ -1015,12 +1000,20 @@ void waxlabs::add_balance(name account_owner, asset quantity)
 {
     //open accounts table, get account
     accounts_table accounts(get_self(), account_owner.value);
-    auto& acct = accounts.get(WAX_SYM.code().raw(), "add_balance: account not found");
+    auto acct = accounts.find(WAX_SYM.code().raw());
 
-    //add quantity to balance
-    accounts.modify(acct, same_payer, [&](auto& col) {
-        col.balance += quantity;
-    });
+    //emplace account if not found, update if exists
+    if (acct == accounts.end()) {
+        //make new account entry
+        accounts.emplace(get_self(), [&](auto& col) {
+            col.balance = quantity;
+        });
+    } else {
+        //update existing account
+        accounts.modify(*acct, same_payer, [&](auto& col) {
+            col.balance += quantity;
+        });
+    }
 }
 
 // Temporary actions
