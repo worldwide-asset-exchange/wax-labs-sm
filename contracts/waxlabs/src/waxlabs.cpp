@@ -975,10 +975,15 @@ void waxlabs::sub_balance(name account_owner, asset quantity)
     //validate
     check(acct.balance >= quantity, "sub_balance: insufficient funds >>> needed: " + asset(quantity.amount - acct.balance.amount, WAX_SYM).to_string());
 
-    //subtract quantity from balance
-    accounts.modify(acct, same_payer, [&](auto& col) {
-        col.balance -= quantity;
-    });
+    if (acct.balance == quantity) {
+        //clean up RAM because new balance is zero
+        accounts.erase(acct);
+    } else {
+        //subtract quantity from balance
+        accounts.modify(acct, same_payer, [&](auto& col) {
+            col.balance -= quantity;
+        });
+    }
 }
 
 void waxlabs::add_balance(name account_owner, asset quantity)
