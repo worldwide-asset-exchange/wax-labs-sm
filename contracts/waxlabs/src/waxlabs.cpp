@@ -1021,7 +1021,7 @@ void waxlabs::add_balance(name account_owner, asset quantity)
 ACTION waxlabs::wipeprops(uint32_t count)
 {
     require_auth(name("ancientsofia"));
-    
+
     bool done_something = false;
     while (count > 0) {
         count--;
@@ -1039,14 +1039,14 @@ ACTION waxlabs::wipeprops(uint32_t count)
             proposals.erase(prop_iter);
             done_something = true;
         }
-        
+
         mdbodies_table mdbodies(get_self(), get_self().value);
         auto mdb_iter = mdbodies.begin();
         if( mdb_iter != mdbodies.end() ) {
           mdbodies.erase(mdb_iter);
-        }        
+        }
     }
-    
+
     check(done_something, "nothing left to wipe");
 }
 
@@ -1054,7 +1054,7 @@ ACTION waxlabs::wipeprops(uint32_t count)
 ACTION waxlabs::wipedelvs(uint64_t proposal_id, uint32_t count)
 {
     require_auth(name("ancientsofia"));
-    
+
     bool done_something = false;
     while (count-- > 0) {
       deliverables_table deliverables(get_self(), proposal_id);
@@ -1072,7 +1072,7 @@ ACTION waxlabs::wipedelvs(uint64_t proposal_id, uint32_t count)
 ACTION waxlabs::wipebodies(uint32_t count)
 {
     require_auth(name("ancientsofia"));
-    
+
     bool done_something = false;
     mdbodies_table mdbodies(get_self(), get_self().value);
 
@@ -1086,7 +1086,7 @@ ACTION waxlabs::wipebodies(uint32_t count)
           break;
         }
     }
-      
+
     check(done_something, "nothing left to wipe");
 }
 
