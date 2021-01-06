@@ -301,6 +301,8 @@ CONTRACT waxlabs : public contract
         map<name, asset> ballot_results = { { name("yes"), asset(0, VOTE_SYM) }, { name("no"), asset(0, VOTE_SYM) } }; //final ballot results from decide
         string status_comment; //human readable explanation for status change
         time_point_sec update_ts; // timestamp of latest proposal update
+        time_point_sec vote_end_time; // vote_endtime that was passed to decide contract
+
 
         uint64_t primary_key() const { return proposal_id; }
 
@@ -322,7 +324,8 @@ CONTRACT waxlabs : public contract
 
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
             (title)(description)(image_url)(estimated_time)(total_requested_funds)(remaining_funds)
-            (deliverables)(deliverables_completed)(reviewer)(ballot_results)(status_comment)(update_ts))
+            (deliverables)(deliverables_completed)(reviewer)(ballot_results)(status_comment)
+            (update_ts)(vote_end_time))
     };
     typedef multi_index<name("proposals"), proposal,
         indexed_by<name("bystatcat"), const_mem_fun<proposal, uint64_t, &proposal::by_status_and_category>>,

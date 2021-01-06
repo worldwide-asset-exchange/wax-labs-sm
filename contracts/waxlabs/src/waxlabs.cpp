@@ -353,6 +353,7 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
         col.status_comment = "";
         col.ballot_name = ballot_name;
         col.update_ts = time_point_sec(current_time_point());
+        col.vote_end_time = ballot_end_time;
     });
 
     //update and set config
