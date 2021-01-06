@@ -855,21 +855,6 @@ ACTION waxlabs::withdraw(name account_name, asset quantity)
     )).send();
 }
 
-ACTION waxlabs::deleteacct(name account_name)
-{
-    //authenticate
-    require_auth(account_name);
-
-    //open accounts table, get account
-    accounts_table accounts(get_self(), account_name.value);
-    auto& acct = accounts.get(WAX_SYM.code().raw(), "account not found");
-
-    //validate
-    check(acct.balance.amount == 0, "account must be empty to delete");
-
-    //delete account
-    accounts.erase(acct);
-}
 
 //======================== notification handlers ========================
 

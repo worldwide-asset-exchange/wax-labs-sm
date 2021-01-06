@@ -223,11 +223,6 @@ CONTRACT waxlabs : public contract
     //auth: account_owner
     ACTION withdraw(name account_owner, asset quantity);
 
-    //delete an account (allows contract to reclaim RAM)
-    //pre: account.balance == 0
-    //auth: account_name or admin_acct
-    ACTION deleteacct(name account_name);
-
     //======================== notification handlers ========================
 
     //catches transfer notification from eosio.token
