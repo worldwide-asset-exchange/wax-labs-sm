@@ -170,12 +170,12 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     check(new_proposal_id <= MAX_PROPOSAL_ID, "too many proposals");
 
     // update last_proposal_id
-    conf.last_proposal_id = 10000;
+    conf.last_proposal_id = new_proposal_id;
     configs.set(conf, get_self());
 
     //create new proposal
     //ram payer: proposer
-    /*proposals.emplace(proposer, [&](auto& col) {
+    proposals.emplace(proposer, [&](auto& col) {
         col.proposal_id = new_proposal_id;
         col.proposer = proposer;
         col.category = cat_pos;
@@ -186,7 +186,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
         col.total_requested_funds = asset(0, WAX_SYM);
         col.deliverables = 0;
         col.update_ts = time_point_sec(current_time_point());
-    });*/
+    });
 
     mdbodies.emplace(proposer, [&](auto& col) {
         col.proposal_id = new_proposal_id;
