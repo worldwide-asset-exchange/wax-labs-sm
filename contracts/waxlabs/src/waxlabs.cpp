@@ -175,7 +175,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
 
     //create new proposal
     //ram payer: proposer
- /*   proposals.emplace(proposer, [&](auto& col) {
+    proposals.emplace(proposer, [&](auto& col) {
         col.proposal_id = new_proposal_id;
         col.proposer = proposer;
         col.category = cat_pos;
@@ -187,7 +187,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
         col.deliverables = 0;
         col.update_ts = time_point_sec(current_time_point());
     });
-*/
+
     mdbodies.emplace(proposer, [&](auto& col) {
         col.proposal_id = new_proposal_id;
         col.content = mdbody;
