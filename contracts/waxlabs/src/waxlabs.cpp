@@ -173,7 +173,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     conf.last_proposal_id = new_proposal_id;
     configs.set(conf, get_self());
 
-    //create new proposal
+    //create new proposal 
     //ram payer: proposer
     proposals.emplace(proposer, [&](auto& col) {
         col.proposal_id = new_proposal_id;
