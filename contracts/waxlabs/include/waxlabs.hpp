@@ -325,7 +325,7 @@ CONTRACT waxlabs : public contract
     typedef multi_index<name("proposals"), proposal,
         indexed_by<name("bystatcat"), const_mem_fun<proposal, uint64_t, &proposal::by_status_and_category>>,
         indexed_by<name("bycatstat"), const_mem_fun<proposal, uint64_t, &proposal::by_category_and_status>>,
-        indexed_by<name("byproposer"), const_mem_fun<proposal, uint128_t, &proposal::by_proposer>>,
+        indexed_by<name("byproposerst"), const_mem_fun<proposal, uint128_t, &proposal::by_proposer>>,
         indexed_by<name("byreviewer"), const_mem_fun<proposal, uint128_t, &proposal::by_reviewer>>,
         indexed_by<name("byballot"), const_mem_fun<proposal, uint64_t, &proposal::by_ballot>>,
         indexed_by<name("byupdatets"), const_mem_fun<proposal, uint64_t, &proposal::by_update_ts>>

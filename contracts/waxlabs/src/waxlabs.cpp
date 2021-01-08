@@ -830,7 +830,7 @@ ACTION waxlabs::rmvprofile(name wax_account)
 
     //check that there are no proposals by this account
     proposals_table proposals(get_self(), get_self().value);
-    auto props_by_proposer = proposals.get_index<name("byproposer")>();
+    auto props_by_proposer = proposals.get_index<name("byproposerst")>();
     auto by_proposer_itr = props_by_proposer.lower_bound((uint128_t)wax_account.value << 64);
     check(by_proposer_itr == props_by_proposer.end() || by_proposer_itr->proposer != wax_account,
           "there are still active proposals by this account");
