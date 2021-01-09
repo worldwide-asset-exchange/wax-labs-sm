@@ -19,7 +19,7 @@ build-test-deploy-testnet:
     - cleos wallet lock
     - cat ~/wallet.pw  | cleos wallet unlock --password
     # update smart contract on chain
-    - ./deploy.sh waxlabs labs testnet
+    - ./deploy.sh waxlabs labstest1111 testnet
   stage: test
   artifacts:
     paths:
