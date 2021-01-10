@@ -118,7 +118,7 @@ ACTION waxlabs::rmvcategory(name category_name)
     auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), category_name);
     check(cat_itr != conf.categories.end(), "category name not found");
     auto depr_itr = std::find(conf.cat_deprecated.begin(), conf.cat_deprecated.end(), category_name);
-    check(depr_itr != conf.cat_deprecated.end(), "category name is already in deprecated list");
+    check(depr_itr == conf.cat_deprecated.end(), "category name is already in deprecated list");
 
     //add category to deprecated list
     conf.cat_deprecated.push_back(category_name);
