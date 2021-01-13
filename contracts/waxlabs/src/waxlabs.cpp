@@ -158,6 +158,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
 
     //subtract DRAFT_COST from account balance
     sub_balance(proposer, DRAFT_COST);
+    conf.available_funds += DRAFT_COST;
 
     size_t cat_pos = std::distance(conf.categories.begin(), cat_itr);
 
