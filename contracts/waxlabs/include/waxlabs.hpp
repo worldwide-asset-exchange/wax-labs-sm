@@ -130,7 +130,7 @@ CONTRACT waxlabs : public contract
         string image_url, uint32_t estimated_time);
 
     //submit a proposal draft for admin approval
-    //pre: proposal.status == drafting
+    //pre: proposal.status == drafting, reviewer is set.
     //post: proposal.status == submitted
     //auth: proposer
     ACTION submitprop(uint64_t proposal_id);
@@ -157,7 +157,7 @@ CONTRACT waxlabs : public contract
     ACTION setreviewer(uint64_t proposal_id, uint64_t deliverable_id, name new_reviewer);
 
     //cancel proposal
-    //pre: proposal.status == submitted || approved || voting
+    //pre: proposal.status == drafing || submitted || approved || voting
     //post: proposal.status == cancelled
     //auth: proposer
     ACTION cancelprop(uint64_t proposal_id, string memo);

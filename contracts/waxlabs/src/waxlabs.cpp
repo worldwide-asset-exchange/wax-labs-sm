@@ -468,7 +468,7 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     //validate
     check(prop.status == proposal_status::drafting || prop.status == proposal_status::submitted ||
           prop.status == proposal_status::approved || prop.status == proposal_status::voting,
-          "proposal must be in submitted, approved, or voting stages to cancel");
+          "proposal must be in drafting, submitted, approved, or voting stages to cancel");
 
     //update proposal. RAM payer=self because we write the memo
     proposals.modify(prop, _self, [&](auto& col) {
