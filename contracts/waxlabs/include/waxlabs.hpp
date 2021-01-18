@@ -234,6 +234,14 @@ CONTRACT waxlabs : public contract
     void catch_broadcast(name ballot_name, map<name, asset> final_results, uint32_t total_voters);
 
     //======================== functions ========================
+    
+    // increments (creates if not found) stat count both total and current.
+    void inc_stats_count(proposal_status key);
+    
+    // decrements (fails if not found) stat count
+    // by default only decrements current, 
+    // if dec_total is true also decrements total.
+    void dec_stats_count(proposal_status key, bool dec_total = false);
 
     //subtracts amount from balance
     void sub_balance(name account_owner, asset quantity);
