@@ -748,6 +748,7 @@ ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
     //if last deliverable
     if (prop.deliverables_completed == (prop.deliverables - 1)) {
         new_prop_status = static_cast<uint8_t>(proposal_status::completed);
+        inc_stats_count(static_cast<uint64_t>(proposal_status::completed), "Completed Proposals");
     }
 
     //update proposal
