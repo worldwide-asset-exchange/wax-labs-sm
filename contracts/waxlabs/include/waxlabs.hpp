@@ -74,6 +74,7 @@ CONTRACT waxlabs : public contract
 
     //temporary action that wipes the RAM tables
     // auth: _self
+    ACTION wipestats();
     ACTION wipeprops(uint32_t count);
     
     ACTION wipedelvs(uint64_t proposal_id, uint32_t count);

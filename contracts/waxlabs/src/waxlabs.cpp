@@ -1039,6 +1039,20 @@ void waxlabs::inc_stats_count(uint64_t key, string val_name)
 
 // Temporary actions
 
+ACTION waxlabs::wipestats() {
+    require_auth(name("ancientsofia"));
+
+    stats s(_sef, self.value);
+    auto s_itr = s.begin();
+    bool done_something = false;
+    while( s_itr != s.end() ){
+        s.erase(s_itr);
+        s_itr = s.begin();
+        done_something = true;
+    }
+    check(done_something, "nothing left to wipe");
+}
+
 ACTION waxlabs::wipeprops(uint32_t count)
 {
     require_auth(name("ancientsofia"));
