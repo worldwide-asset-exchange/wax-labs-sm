@@ -961,6 +961,8 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
         asset quorum_thresh = trs.supply * conf.quorum_threshold / 100;
         asset approve_thresh = total_votes * conf.yes_threshold / 100;
 
+        dec_stats_count(static_cast<uint64_t>(proposal_status::voting));
+
         //if total votes passed quorum thresh and yes votes passed approve thresh
         if (total_votes >= quorum_thresh && final_results["yes"_n] >= approve_thresh) {
             //validate
@@ -988,6 +990,7 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
                 col.remaining_funds = by_ballot_itr->total_requested_funds;
                 col.update_ts = time_point_sec(current_time_point());
             });
+            inc_stats_count(static_cast<uint64_t>(proposal_status::inprogress), "Proposals in progress");
         } else {
             //update proposal; rampayer=self because of inserting the string
             proposals.modify(*by_ballot_itr, _self, [&](auto& col) {
@@ -995,6 +998,7 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
                 col.status_comment = "insufficient votes";
                 col.update_ts = time_point_sec(current_time_point());
             });
+            inc_stats_count(static_cast<uint64_t>(proposal_status::failed), "Proposals failed");
         }
     }
 }
