@@ -1014,7 +1014,7 @@ void waxlabs::add_balance(name account_owner, asset quantity)
     }
 }
 
-void waxlabs::inc_stats_count(proposal_status key, string val_name)
+void waxlabs::inc_stats_count(uint64_t key, string val_name)
 {
     stats s(_self, _self.value);
     auto itr = s.find(key);
@@ -1027,7 +1027,7 @@ void waxlabs::inc_stats_count(proposal_status key, string val_name)
     } else 
     {
         s.emplace(_self, [&]( auto& row ) {
-            row.key = (uint64_t) key;
+            row.key = key;
             row.val_name = val_name;
             row.current_count = 1;
             row.total_count = 1;
