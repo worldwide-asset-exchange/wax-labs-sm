@@ -1042,7 +1042,7 @@ void waxlabs::inc_stats_count(uint64_t key, string val_name)
 ACTION waxlabs::wipestats() {
     require_auth(name("ancientsofia"));
 
-    stats s(_self, self.value);
+    stats s(_self, _self.value);
     auto s_itr = s.begin();
     bool done_something = false;
     while( s_itr != s.end() ){
