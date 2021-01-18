@@ -174,6 +174,9 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     conf.last_proposal_id = new_proposal_id;
     configs.set(conf, get_self());
 
+    //Increment stats for drafting proposals
+    inc_stats_count(static_cast<uint64_t>(proposal_status::voting), "Proposals in drafting");
+
     //create new proposal 
     //ram payer: proposer
     proposals.emplace(proposer, [&](auto& col) {
