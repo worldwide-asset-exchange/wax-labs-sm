@@ -1027,7 +1027,7 @@ void waxlabs::inc_stats_count(proposal_status key, string val_name)
     } else 
     {
         s.emplace(_self, [&]( auto& row ) {
-            row.key = key;
+            row.key = (uint64_t) key;
             row.val_name = val_name;
             row.current_count = 1;
             row.total_count = 1;
