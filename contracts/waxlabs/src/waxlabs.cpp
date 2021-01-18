@@ -1014,6 +1014,28 @@ void waxlabs::add_balance(name account_owner, asset quantity)
     }
 }
 
+void waxlabs::inc_stats_count(proposal_status key, string val_name)
+{
+    stats s(_self, _self.value);
+    auto itr = s.find(key);
+    if( itr != s.end() )
+    {
+        s.modify( *itr, same_payer, [&]( auto& row ) {
+            row.current_count += 1;
+            row.total_count += 1;
+        });
+    } else 
+    {
+        s.emplace(_self, [&]( auto& row ) {
+            row.key = key;
+            row.val_name = val_name;
+            row.current_count = 1;
+            row.total_count = 1;
+        });
+    }
+}
+
+
 // Temporary actions
 
 ACTION waxlabs::wipeprops(uint32_t count)

@@ -236,12 +236,12 @@ CONTRACT waxlabs : public contract
     //======================== functions ========================
     
     // increments (creates if not found) stat count both total and current.
-    void inc_stats_count(proposal_status key);
+    void inc_stats_count(proposal_status key, string val_name);
     
     // decrements (fails if not found) stat count
     // by default only decrements current, 
     // if dec_total is true also decrements total.
-    void dec_stats_count(proposal_status key, bool dec_total = false);
+    void dec_stats_count(proposal_status key, string val_name, bool dec_total = false);
 
     //subtracts amount from balance
     void sub_balance(name account_owner, asset quantity);
@@ -260,12 +260,12 @@ CONTRACT waxlabs : public contract
     //stat table
     //scope self
     TABLE stat {
-        proposal_status     key;
+        uint64_t            key;
         string              val_name;
         uint128_t           current_count = 0;
         uint128_t           total_count = 0;
 
-        auto primary_key()const { return (uint64_t) key; }
+        auto primary_key()const { return key; }
 
         EOSLIB_SERIALIZE(stat, (key)(val_name)(current_count)(total_count))
     };
