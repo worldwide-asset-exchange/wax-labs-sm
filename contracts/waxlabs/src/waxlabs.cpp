@@ -1039,7 +1039,8 @@ void waxlabs::inc_stats_count(uint64_t key, string val_name)
 
 // Temporary actions
 
-ACTION waxlabs::wipestats() {
+ACTION waxlabs::wipestats() 
+{
     require_auth(name("ancientsofia"));
 
     stats s(_self, _self.value);
