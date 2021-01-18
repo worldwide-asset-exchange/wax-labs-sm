@@ -249,6 +249,21 @@ CONTRACT waxlabs : public contract
 
     //======================== contract tables ========================
 
+    //stat table
+    //scope self
+    TABLE stat {
+        proposal_status     key;
+        string              val_name;
+        uint128_t           current_count = 0;
+        uint128_t           total_count = 0;
+
+        auto primary_key()const { return (uint64_t) key; }
+
+        EOSLIB_SERIALIZE(stat, (key)(val_name)(current_count)(total_count))
+    }
+    typedef eosio::multi_index<
+        name("stats"), stat> stats;
+
     //config table
     //scope: self
     TABLE config {
