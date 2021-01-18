@@ -175,7 +175,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     configs.set(conf, get_self());
 
     //Increment stats for drafting proposals
-    inc_stats_count(static_cast<uint64_t>(proposal_status::voting), "Proposals in drafting");
+    inc_stats_count(static_cast<uint64_t>(proposal_status::drafting), "Proposals in drafting");
 
     //create new proposal 
     //ram payer: proposer
