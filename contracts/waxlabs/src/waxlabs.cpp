@@ -1042,7 +1042,7 @@ void waxlabs::inc_stats_count(uint64_t key, string val_name)
     }
 }
 
-void waxlabs::dec_stats_count(uint64_t key, string val_name, bool dec_total = false)
+void waxlabs::dec_stats_count(uint64_t key, string val_name, bool dec_total)
 {
     stats s(_self, _self.value);
     auto itr = s.find(key);
