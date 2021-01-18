@@ -260,7 +260,7 @@ CONTRACT waxlabs : public contract
         auto primary_key()const { return (uint64_t) key; }
 
         EOSLIB_SERIALIZE(stat, (key)(val_name)(current_count)(total_count))
-    }
+    };
     typedef eosio::multi_index<
         name("stats"), stat> stats;
 
