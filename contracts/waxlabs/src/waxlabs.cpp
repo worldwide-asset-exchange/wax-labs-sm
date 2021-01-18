@@ -279,6 +279,8 @@ ACTION waxlabs::submitprop(uint64_t proposal_id)
     check(prop.total_requested_funds >= conf.min_requested, "requested amount is less than minimum requested amount");
     check(prop.total_requested_funds <= conf.max_requested, "total requested is more than maximum allowed");
 
+    //decrement current status
+    dec_stats_count(static_cast<uint64_t>(prop.status), "Proposals in drafting");
     //Increment stats for submitted proposals
     inc_stats_count(static_cast<uint64_t>(proposal_status::submitted), "Proposals in review");
 
