@@ -308,6 +308,11 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
     //validate
     check(prop.status == proposal_status::submitted, "proposal must be in submitted state to review");
 
+    //decrement current status
+    dec_stats_count(static_cast<uint64_t>(proposal_status::submitted), "Proposals in review");
+
+
+
     //if admin approved
     if (approve) {
         //check if reviewer is set
@@ -318,6 +323,9 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
             col.status_comment = memo;
             col.update_ts = time_point_sec(current_time_point());
         });
+
+        //Increment stats for approved proposals
+        inc_stats_count(static_cast<uint64_t>(proposal_status::approved), "Proposals approved");
     } else {
         //update proposal to failed
         proposals.modify(prop, same_payer, [&](auto& col) {
@@ -325,6 +333,9 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
             col.status_comment = memo;
             col.update_ts = time_point_sec(current_time_point());
         });
+
+        //Increment stats for failed proposals
+        inc_stats_count(static_cast<uint64_t>(proposal_status::failed), "Proposals failed");
     }
 }
 
