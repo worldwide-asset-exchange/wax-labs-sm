@@ -280,7 +280,7 @@ ACTION waxlabs::submitprop(uint64_t proposal_id)
     check(prop.total_requested_funds <= conf.max_requested, "total requested is more than maximum allowed");
 
     //decrement current status
-    dec_stats_count(static_cast<uint64_t>(prop.status), "Proposals in drafting");
+    dec_stats_count(static_cast<uint64_t>(prop.status));
     //Increment stats for submitted proposals
     inc_stats_count(static_cast<uint64_t>(proposal_status::submitted), "Proposals in review");
 
@@ -309,7 +309,7 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
     check(prop.status == proposal_status::submitted, "proposal must be in submitted state to review");
 
     //decrement current status
-    dec_stats_count(static_cast<uint64_t>(proposal_status::submitted), "Proposals in review");
+    dec_stats_count(static_cast<uint64_t>(proposal_status::submitted));
 
 
 
@@ -366,6 +366,10 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
     //validate
     check(prop.status == proposal_status::approved, "proposal must be approved by admin to begin voting");
     check(conf.deposited_funds >= newballot_fee, "not enough deposited funds");
+
+    //dec and inc stats_counts
+    dec_stats_count(static_cast<uint64_t>(proposal_status::approved));
+    inc_stats_count(static_cast<uint64_t>(proposal_status::voting), "Proposals in voting");
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
@@ -536,6 +540,9 @@ ACTION waxlabs::deleteprop(uint64_t proposal_id)
     check(prop.status == proposal_status::failed || prop.status == proposal_status::cancelled ||
           prop.status == proposal_status::completed,
           "proposal must be failed, cancelled, or completed to delete");
+
+    //decrement status count
+    dec_stats_count(static_cast<uint64_t>(prop.status));
 
     //if remaining funds greater than zero
     if (prop.remaining_funds.amount > 0) {
@@ -1055,7 +1062,7 @@ void waxlabs::inc_stats_count(uint64_t key, string val_name)
     }
 }
 
-void waxlabs::dec_stats_count(uint64_t key, string val_name, bool dec_total)
+void waxlabs::dec_stats_count(uint64_t key, bool dec_total)
 {
     stats s(_self, _self.value);
     auto itr = s.find(key);
@@ -1065,15 +1072,7 @@ void waxlabs::dec_stats_count(uint64_t key, string val_name, bool dec_total)
             row.current_count -= 1;
             row.total_count -= (dec_total ? 1 : 0);
         });
-    } else 
-    {
-        s.emplace(_self, [&]( auto& row ) {
-            row.key = key;
-            row.val_name = val_name;
-            row.current_count = 0;
-            row.total_count = 0;
-        });
-    }
+    } 
 }
 
 // Temporary actions

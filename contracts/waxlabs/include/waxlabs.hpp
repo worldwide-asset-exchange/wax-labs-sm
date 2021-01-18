@@ -242,7 +242,7 @@ CONTRACT waxlabs : public contract
     // decrements (fails if not found) stat count
     // by default only decrements current, 
     // if dec_total is true also decrements total.
-    void dec_stats_count(uint64_t key, string val_name, bool dec_total = false);
+    void dec_stats_count(uint64_t key, bool dec_total = false);
 
     //subtracts amount from balance
     void sub_balance(name account_owner, asset quantity);
