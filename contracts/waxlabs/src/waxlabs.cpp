@@ -279,6 +279,9 @@ ACTION waxlabs::submitprop(uint64_t proposal_id)
     check(prop.total_requested_funds >= conf.min_requested, "requested amount is less than minimum requested amount");
     check(prop.total_requested_funds <= conf.max_requested, "total requested is more than maximum allowed");
 
+    //Increment stats for submitted proposals
+    inc_stats_count(static_cast<uint64_t>(proposal_status::submitted), "Proposals in review");
+
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = static_cast<uint8_t>(proposal_status::submitted);
@@ -1039,6 +1042,26 @@ void waxlabs::inc_stats_count(uint64_t key, string val_name)
     }
 }
 
+void waxlabs::dec_stats_count(uint64_t key, string val_name, bool dec_total = false)
+{
+    stats s(_self, _self.value);
+    auto itr = s.find(key);
+    if ( itr != s.end() )
+    {
+        s.modify( *itr, same_payer, [&]( auto& row ) {
+            row.current_count -= 1;
+            row.total_count -= (dec_total ? 1 : 0);
+        });
+    } else 
+    {
+        s.emplace(_self, [&]( auto& row ) {
+            row.key = key;
+            row.val_name = val_name;
+            row.current_count = 0;
+            row.total_count = 0;
+        });
+    }
+}
 
 // Temporary actions
 
