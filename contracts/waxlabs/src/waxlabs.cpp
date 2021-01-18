@@ -493,6 +493,10 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
           prop.status == proposal_status::approved || prop.status == proposal_status::voting,
           "proposal must be in drafting, submitted, approved, or voting stages to cancel");
 
+    //inc cancelled / dec current stats
+    dec_stats_count(static_cast<uint64_t>(prop.status));
+    inc_stats_count(static_cast<uint64_t>(proposal_status::cancelled), "Proposals cancelled");
+
     //update proposal. RAM payer=self because we write the memo
     proposals.modify(prop, _self, [&](auto& col) {
         col.status = static_cast<uint8_t>(proposal_status::cancelled);
