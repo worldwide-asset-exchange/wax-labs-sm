@@ -177,7 +177,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     //Increment stats for drafting proposals
     inc_stats_count(static_cast<uint64_t>(proposal_status::drafting), "Proposals in drafting");
 
-    //create new proposal 
+    //create new proposal
     //ram payer: proposer
     proposals.emplace(proposer, [&](auto& col) {
         col.proposal_id = new_proposal_id;
@@ -311,7 +311,7 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
     //decrement current status
     dec_stats_count(static_cast<uint64_t>(proposal_status::submitted));
 
-
+    set_pcomment(proposal_id, memo, conf.admin_acct);
 
     //if admin approved
     if (approve) {
@@ -320,7 +320,6 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
         //update proposal to approved
         proposals.modify(prop, same_payer, [&](auto& col) {
             col.status = static_cast<uint8_t>(proposal_status::approved);
-            col.status_comment = memo;
             col.update_ts = time_point_sec(current_time_point());
         });
 
@@ -330,7 +329,6 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
         //update proposal to failed
         proposals.modify(prop, same_payer, [&](auto& col) {
             col.status = static_cast<uint8_t>(proposal_status::failed);
-            col.status_comment = memo;
             col.update_ts = time_point_sec(current_time_point());
         });
 
@@ -374,11 +372,12 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = static_cast<uint8_t>(proposal_status::voting);
-        col.status_comment = "";
         col.ballot_name = ballot_name;
         col.update_ts = time_point_sec(current_time_point());
         col.vote_end_time = ballot_end_time;
     });
+
+    set_pcomment(proposal_id, "", prop.proposer);
 
     //update and set config
     conf.deposited_funds -= newballot_fee;
@@ -482,8 +481,17 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
 
-    //authenticate
-    check(has_auth(prop.proposer) || has_auth(conf.admin_acct), "requires proposer or admin to authenticate");
+    //authenticate and get the payer
+    name payer;
+    if (has_auth(prop.proposer)) {
+        payer = prop.proposer;
+    }
+    else if (has_auth(conf.admin_acct)) {
+        payer = conf.admin_acct;
+    }
+    else {
+        check(false, "requires proposer or admin to authenticate");
+    }
 
     //initialzie
     proposal_status initial_status = static_cast<proposal_status>(prop.status);
@@ -497,12 +505,13 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     dec_stats_count(static_cast<uint64_t>(prop.status));
     inc_stats_count(static_cast<uint64_t>(proposal_status::cancelled), "Proposals cancelled");
 
-    //update proposal. RAM payer=self because we write the memo
-    proposals.modify(prop, _self, [&](auto& col) {
+    //update proposal.
+    proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = static_cast<uint8_t>(proposal_status::cancelled);
-        col.status_comment = memo;
         col.update_ts = time_point_sec(current_time_point());
     });
+
+    set_pcomment(proposal_id, memo, payer);
 
     //reject all deliverables
     deliverables_table deliverables(get_self(), proposal_id);
@@ -510,8 +519,8 @@ ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
     while( deliv_iter != deliverables.end() ) {
         deliverables.modify(*deliv_iter, _self, [&](auto& col) {
             col.status = static_cast<uint8_t>(deliverable_status::rejected);
-            col.status_comment = memo;
         });
+        set_dcomment(proposal_id, deliv_iter->deliverable_id, memo, payer);
         deliv_iter++;
     }
 
@@ -558,10 +567,13 @@ ACTION waxlabs::deleteprop(uint64_t proposal_id)
         configs.set(conf, get_self());
     }
 
+    set_pcomment(proposal_id, "", _self); //release comment RAM
+
     //erase each deliverable
     deliverables_table deliverables(get_self(), proposal_id);
     auto deliv_iter = deliverables.begin();
     while( deliv_iter != deliverables.end() ) {
+        set_dcomment(proposal_id, deliv_iter->deliverable_id, "", _self); //release comment RAM
         deliv_iter = deliverables.erase(deliv_iter);
     }
 
@@ -637,6 +649,7 @@ ACTION waxlabs::rmvdeliv(uint64_t proposal_id, uint64_t deliverable_id)
         col.update_ts = time_point_sec(current_time_point());
     });
 
+    set_dcomment(proposal_id, deliverable_id, "", _self); //release comment RAM
     //erase deliverable
     deliverables.erase(deliv);
 }
@@ -706,8 +719,8 @@ ACTION waxlabs::submitreport(uint64_t proposal_id, uint64_t deliverable_id, stri
     deliverables.modify(deliv, same_payer, [&](auto& col) {
         col.status = static_cast<uint8_t>(deliverable_status::reported);
         col.report = report;
-        col.status_comment = "";
     });
+    set_dcomment(proposal_id, deliverable_id, "", prop.proposer);
 }
 
 ACTION waxlabs::reviewdeliv(uint64_t proposal_id, uint64_t deliverable_id, bool accept, string memo)
@@ -733,16 +746,16 @@ ACTION waxlabs::reviewdeliv(uint64_t proposal_id, uint64_t deliverable_id, bool 
         deliverables.modify(deliv, same_payer, [&](auto& col) {
             col.status = static_cast<uint8_t>(deliverable_status::accepted);
             col.review_time = time_point_sec(current_time_point());
-            col.status_comment = memo;
         });
     } else {
         //update deliverable
         deliverables.modify(deliv, same_payer, [&](auto& col) {
             col.status = static_cast<uint8_t>(deliverable_status::rejected);
             col.review_time = time_point_sec(current_time_point());
-            col.status_comment = memo;
         });
     }
+
+    set_dcomment(proposal_id, deliverable_id, memo, prop.reviewer);
 }
 
 ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
@@ -769,8 +782,8 @@ ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
     //update deliverable
     deliverables.modify(deliv, same_payer, [&](auto& col) {
         col.status = static_cast<uint8_t>(deliverable_status::claimed);
-        col.status_comment = "";
     });
+    set_dcomment(proposal_id, deliverable_id, "", _self); //it's releasing RAM, no need for payer
 
     //initialize
     uint8_t new_prop_status = prop.status;
@@ -991,18 +1004,20 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
             //update proposal; rampayer=self because of inserting the string
             proposals.modify(*by_ballot_itr, _self, [&](auto& col) {
                 col.status = static_cast<uint8_t>(proposal_status::inprogress);
-                col.status_comment = "voting finished";
                 col.remaining_funds = by_ballot_itr->total_requested_funds;
                 col.update_ts = time_point_sec(current_time_point());
             });
+            // payer=self because it's a notification
+            set_pcomment(by_ballot_itr->proposal_id, "voting finished", _self);
             inc_stats_count(static_cast<uint64_t>(proposal_status::inprogress), "Proposals in progress");
         } else {
             //update proposal; rampayer=self because of inserting the string
             proposals.modify(*by_ballot_itr, _self, [&](auto& col) {
                 col.status = static_cast<uint8_t>(proposal_status::failed);
-                col.status_comment = "insufficient votes";
                 col.update_ts = time_point_sec(current_time_point());
             });
+            // payer=self because it's a notification
+            set_pcomment(by_ballot_itr->proposal_id, "insufficient votes", _self);
             inc_stats_count(static_cast<uint64_t>(proposal_status::failed), "Proposals failed");
         }
     }
@@ -1060,7 +1075,7 @@ void waxlabs::inc_stats_count(uint64_t key, string val_name)
             row.current_count += 1;
             row.total_count += 1;
         });
-    } else 
+    } else
     {
         s.emplace(_self, [&]( auto& row ) {
             row.key = key;
@@ -1081,12 +1096,61 @@ void waxlabs::dec_stats_count(uint64_t key, bool dec_total)
             row.current_count -= 1;
             row.total_count -= (dec_total ? 1 : 0);
         });
-    } 
+    }
 }
+
+void waxlabs::set_pcomment(uint64_t proposal_id, string status_comment, name payer)
+{
+    pcomments_table pcomments(_self, _self.value);
+    auto itr = pcomments.find(proposal_id);
+    if (itr == pcomments.end() ) {
+        if (status_comment.size() > 0 ) {
+            pcomments.emplace(payer, [&]( auto& row ) {
+                row.proposal_id = proposal_id;
+                row.status_comment = status_comment;
+            });
+        }
+    }
+    else {
+        if (status_comment.size() > 0 ) {
+            pcomments.modify( *itr, payer, [&]( auto& row ) {
+                row.status_comment = status_comment;
+            });
+        }
+        else {
+            pcomments.erase(itr);
+        }
+    }
+}
+
+void waxlabs::set_dcomment(uint64_t proposal_id, uint64_t deliverable_id, string status_comment, name payer)
+{
+    dcomments_table dcomments(_self, proposal_id);
+    auto itr = dcomments.find(deliverable_id);
+    if (itr == dcomments.end() ) {
+        if (status_comment.size() > 0 ) {
+            dcomments.emplace(payer, [&]( auto& row ) {
+                row.deliverable_id = deliverable_id;
+                row.status_comment = status_comment;
+            });
+        }
+    }
+    else {
+        if (status_comment.size() > 0 ) {
+            dcomments.modify( *itr, payer, [&]( auto& row ) {
+                row.status_comment = status_comment;
+            });
+        }
+        else {
+            dcomments.erase(itr);
+        }
+    }
+}
+
 
 // Temporary actions
 
-ACTION waxlabs::wipestats() 
+ACTION waxlabs::wipestats()
 {
     require_auth(name("ancientsofia"));
 
@@ -1116,9 +1180,11 @@ ACTION waxlabs::wipeprops(uint32_t count)
             deliverables_table deliverables(get_self(), proposal_id);
             auto deliv_iter = deliverables.begin();
             while( deliv_iter != deliverables.end() ) {
+              set_dcomment(proposal_id, deliv_iter->deliverable_id, "", _self); //release comment RAM
               deliv_iter = deliverables.erase(deliv_iter);
             }
 
+            set_pcomment(proposal_id, "", _self); //release comment RAM
             proposals.erase(prop_iter);
             done_something = true;
         }
@@ -1143,6 +1209,7 @@ ACTION waxlabs::wipedelvs(uint64_t proposal_id, uint32_t count)
       deliverables_table deliverables(get_self(), proposal_id);
       auto deliv_iter = deliverables.begin();
       while( deliv_iter != deliverables.end() ) {
+        set_dcomment(proposal_id, deliv_iter->deliverable_id, "", _self); //release comment RAM
         deliv_iter = deliverables.erase(deliv_iter);
         done_something = true;
       }
