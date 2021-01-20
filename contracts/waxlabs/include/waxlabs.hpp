@@ -52,7 +52,7 @@ CONTRACT waxlabs : public contract
         return a == static_cast<uint8_t>(b);
     }
 
-    
+
 
 
     enum class deliverable_status : uint8_t {
@@ -76,9 +76,9 @@ CONTRACT waxlabs : public contract
     // auth: _self
     ACTION wipestats();
     ACTION wipeprops(uint32_t count);
-    
+
     ACTION wipedelvs(uint64_t proposal_id, uint32_t count);
-    
+
     ACTION wipeconf();
 
     ACTION wipebodies(uint32_t count);
@@ -116,9 +116,9 @@ CONTRACT waxlabs : public contract
     //draft a new wax labs proposal
     //pre: valid category. category can't be in config cat_deprecated list.
     // estimated time must be greater than 0.
-    // proposer must have a profile registered. 
+    // proposer must have a profile registered.
     // description, mdbody, image_url and title must not be bigger than max_len variables
-    // account must have more than 
+    // account must have more than
     //auth: proposer
     ACTION draftprop(string title, string description, string mdbody, name proposer,
         string image_url, uint32_t estimated_time, name category);
@@ -235,12 +235,12 @@ CONTRACT waxlabs : public contract
     void catch_broadcast(name ballot_name, map<name, asset> final_results, uint32_t total_voters);
 
     //======================== functions ========================
-    
+
     // increments (creates if not found) stat count both total and current.
     void inc_stats_count(uint64_t key, string val_name);
-    
+
     // decrements (fails if not found) stat count
-    // by default only decrements current, 
+    // by default only decrements current,
     // if dec_total is true also decrements total.
     void dec_stats_count(uint64_t key, bool dec_total = false);
 
@@ -255,6 +255,12 @@ CONTRACT waxlabs : public contract
 
     //returns true if vote passed yes threshold
     // bool did_pass_yes_thresh();
+
+    //sets a comment for a proposal
+    void set_pcomment(uint64_t proposal_id, string status_comment, name payer);
+
+    //sets a comment for a deliverable
+    void set_dcomment(uint64_t proposal_id, uint64_t deliverable_id, string status_comment, name payer);
 
     //======================== contract tables ========================
 
@@ -318,7 +324,6 @@ CONTRACT waxlabs : public contract
         uint8_t deliverables_completed = 0; //total deliverables accepted by reviewer and claimed
         name reviewer = name(0); //account name reviewing the deliverables (blank until reviewer selected)
         map<name, asset> ballot_results = { { name("yes"), asset(0, VOTE_SYM) }, { name("no"), asset(0, VOTE_SYM) } }; //final ballot results from decide
-        string status_comment; //human readable explanation for status change
         time_point_sec update_ts; // timestamp of latest proposal update
         time_point_sec vote_end_time; // vote_endtime that was passed to decide contract
 
@@ -343,7 +348,7 @@ CONTRACT waxlabs : public contract
 
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
             (title)(description)(image_url)(estimated_time)(total_requested_funds)(remaining_funds)
-            (deliverables)(deliverables_completed)(reviewer)(ballot_results)(status_comment)
+            (deliverables)(deliverables_completed)(reviewer)(ballot_results)
             (update_ts)(vote_end_time))
     };
     typedef multi_index<name("proposals"), proposal,
@@ -367,6 +372,17 @@ CONTRACT waxlabs : public contract
     };
     typedef multi_index<name("mdbodies"), mdbody> mdbodies_table;
 
+    //proposal comments table
+    //proposal receives comments from the admin team during the reviews. The reviewer pays for RAM,
+    //so the comment is stored in a separate table
+    TABLE pcomment {
+        uint64_t proposal_id; //unique id of proposal
+        string status_comment; //content in Markdown format
+        uint64_t primary_key() const { return proposal_id; }
+        EOSLIB_SERIALIZE(pcomment, (proposal_id)(status_comment))
+    };
+    typedef multi_index<name("pcomments"), pcomment> pcomments_table;
+
     //deliverables table
     //scope: proposal_id
     TABLE deliverable {
@@ -376,13 +392,25 @@ CONTRACT waxlabs : public contract
         name recipient; //account that will receive the funds
         string report = ""; //raw text or link to report for deliverable
         time_point_sec review_time = time_point_sec(0); //time of review (set to genesis date by default)
-        string status_comment; //human readable explanation for status change
 
         uint64_t primary_key() const { return deliverable_id; }
         EOSLIB_SERIALIZE(deliverable, (deliverable_id)(status)(requested)
-            (recipient)(report)(review_time)(status_comment))
+            (recipient)(report)(review_time))
     };
     typedef multi_index<name("deliverables"), deliverable> deliverables_table;
+
+    //deliverable comments table
+    //scope: proposal_id
+    //proposal receives comments from the admin team during the reviews. The reviewer pays for RAM,
+    //so the comment is stored in a separate table
+    TABLE dcomment {
+        uint64_t deliverable_id; //unique id of proposal
+        string status_comment; //content in Markdown format
+        uint64_t primary_key() const { return deliverable_id; }
+        EOSLIB_SERIALIZE(dcomment, (deliverable_id)(status_comment))
+    };
+    typedef multi_index<name("dcomments"), dcomment> dcomments_table;
+
 
     //profiles table
     //scope: self
