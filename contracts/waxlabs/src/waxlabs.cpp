@@ -1207,8 +1207,11 @@ ACTION waxlabs::wipeprofiles(uint32_t count)
     while (count-- > 0) {
       profiles_table profiles(get_self(), get_self().value);
       auto profile_iter = profiles.begin();
-      profiles.erase(profile_iter);
-      done_something = true;
+      if(profile_iter != profiles.end())
+      {
+        profiles.erase(profile_iter);
+        done_something = true;
+      }
     }
     check(done_something, "nothing left to wipe");
 }
