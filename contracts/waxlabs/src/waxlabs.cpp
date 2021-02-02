@@ -984,7 +984,7 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
         dec_stats_count(static_cast<uint64_t>(proposal_status::voting));
 
         //if total votes passed quorum thresh and yes votes passed approve thresh
-        if (total_votes >= quorum_thresh && final_results["yes"_n] >= approve_thresh) {
+        if (total_votes >= quorum_thresh && final_results["yes"_n] > approve_thresh) {
             //validate
             check(conf.available_funds >= by_ballot_itr->total_requested_funds, "WAX Labs has insufficient available funds");
 
@@ -1023,6 +1023,51 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
             inc_stats_count(static_cast<uint64_t>(proposal_status::failed), "Proposals failed");
         }
     }
+}
+
+ACTION waxlabs::skipvoting(uint64_t proposal_id, string memo)
+{
+     //open config singleton, get config
+    config_singleton configs(get_self(), get_self().value);
+    auto conf = configs.get();
+
+    require_auth(conf.admin_acct);
+    
+    proposals_table proposals(get_self(), get_self().value);
+    auto& prop = proposals.get(proposal_id, "proposal not found");
+
+    check(prop.status == proposal_status::submitted, "proposal must be submitted to skip voting.");
+    
+    dec_stats_count(static_cast<uint64_t>(proposal_status::submitted));
+
+    check(conf.available_funds => prop->total_requested_funds, "WAX Labs has insufficient available funds");
+
+    //update config funds
+    conf.available_funds -= prop->total_requested_funds;
+    conf.reserved_funds += prop->total_requested_funds;
+
+    configs.set(conf, get_self());
+
+    //loop over all deliverables
+    deliverables_table deliverables(get_self(), prop->proposal_id);
+    auto deliv_iter = deliverables.begin();
+    while( deliv_iter != deliverables.end() ) {
+        deliverables.modify(*deliv_iter, same_payer, [&](auto& col) {
+            col.status = static_cast<uint8_t>(deliverable_status::inprogress);
+        });
+        deliv_iter++;
+    }
+
+    //update proposal; rampayer=self because of inserting the string
+    proposals.modify(*prop, _self, [&](auto& col) {
+        col.status = static_cast<uint8_t>(proposal_status::inprogress);
+        col.remaining_funds = prop->total_requested_funds;
+        col.update_ts = time_point_sec(current_time_point());
+    });
+
+    set_pcomment(prop->proposal_id, "Admin skipped voting", _self);
+    inc_stats_count(static_cast<uint64_t>(proposal_status::inprogress), "Proposals in progress");
+
 }
 
 //======================== functions ========================

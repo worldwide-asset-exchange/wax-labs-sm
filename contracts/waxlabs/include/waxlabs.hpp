@@ -143,6 +143,13 @@ CONTRACT waxlabs : public contract
     //auth: admin_acct
     ACTION reviewprop(uint64_t proposal_id, bool approve, string memo);
 
+
+    //pass a proposal, without going through voting
+    //pre: proposal.status == submitted
+    //post: proposal.status == inprogress
+    //auth: admin_acct
+    ACTION skipvoting(uint64_t proposal_id, string memo);
+
     //begin voting period on a proposal
     //pre: proposal.status == drafting
     //auth: proposer
@@ -294,7 +301,7 @@ CONTRACT waxlabs : public contract
         asset paid_funds = asset(0, WAX_SYM); //total lifetime funding paid
         uint32_t vote_duration = 1'209'600; //length of voting period on a proposal in seconds (default is 14 days)
         double quorum_threshold = 10.0; //percent of votes to pass quorum
-        double yes_threshold = 65.0; //percent of yes votes to approve
+        double yes_threshold = 50.0; //percent of yes votes to approve
         asset min_requested = asset(1000'00000000, WAX_SYM); //minimum total reqeuested amount for proposals (default is 1k WAX)
         asset max_requested = asset(500000'00000000, WAX_SYM); //maximum total reqeuested amount for proposals (default is 500k WAX)
         vector<name> categories = { name("marketing"), name("infra.tools"), name("dev.tools"), name("governance"), name("other") };
