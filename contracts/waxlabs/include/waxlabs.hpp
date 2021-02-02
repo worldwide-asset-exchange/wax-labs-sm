@@ -207,12 +207,12 @@ CONTRACT waxlabs : public contract
     //create a new profile
     //auth: wax_account
     ACTION newprofile(name wax_account, string full_name, string country, string bio,
-        string image_url, string website, string contact);
+        string image_url, string website, string contact, string group_name);
 
     //edit an existing profile
     //auth: wax_account
     ACTION editprofile(name wax_account, string full_name, string country, string bio,
-        string image_url, string website, string contact);
+        string image_url, string website, string contact, string group_name);
 
     //remove a profile
     //auth: wax_account or admin_acct

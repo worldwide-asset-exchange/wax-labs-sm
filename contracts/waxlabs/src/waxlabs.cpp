@@ -815,7 +815,7 @@ ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
 //======================== profile actions ========================
 
 ACTION waxlabs::newprofile(name wax_account, string full_name, string country, string bio,
-    string image_url, string website, string contact)
+    string image_url, string website, string contact, string group_name)
 {
     //authenticate
     require_auth(wax_account);
@@ -837,11 +837,12 @@ ACTION waxlabs::newprofile(name wax_account, string full_name, string country, s
         col.image_url = image_url;
         col.website = website;
         col.contact = contact;
+        col.group_name = group_name;
     });
 }
 
 ACTION waxlabs::editprofile(name wax_account, string full_name, string country, string bio,
-    string image_url, string website, string contact)
+    string image_url, string website, string contact, string group_name)
 {
     //authenticate
     require_auth(wax_account);
@@ -858,6 +859,7 @@ ACTION waxlabs::editprofile(name wax_account, string full_name, string country, 
         col.image_url = image_url;
         col.website = website;
         col.contact = contact;
+        col.group_name = group_name;
     });
 }
 
