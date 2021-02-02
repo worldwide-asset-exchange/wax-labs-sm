@@ -1040,16 +1040,16 @@ ACTION waxlabs::skipvoting(uint64_t proposal_id, string memo)
     
     dec_stats_count(static_cast<uint64_t>(proposal_status::submitted));
 
-    check(conf.available_funds => prop->total_requested_funds, "WAX Labs has insufficient available funds");
+    check(conf.available_funds >= prop.total_requested_funds, "WAX Labs has insufficient available funds");
 
     //update config funds
-    conf.available_funds -= prop->total_requested_funds;
-    conf.reserved_funds += prop->total_requested_funds;
+    conf.available_funds -= prop.total_requested_funds;
+    conf.reserved_funds += prop.total_requested_funds;
 
     configs.set(conf, get_self());
 
     //loop over all deliverables
-    deliverables_table deliverables(get_self(), prop->proposal_id);
+    deliverables_table deliverables(get_self(), prop.proposal_id);
     auto deliv_iter = deliverables.begin();
     while( deliv_iter != deliverables.end() ) {
         deliverables.modify(*deliv_iter, same_payer, [&](auto& col) {
@@ -1059,13 +1059,13 @@ ACTION waxlabs::skipvoting(uint64_t proposal_id, string memo)
     }
 
     //update proposal; rampayer=self because of inserting the string
-    proposals.modify(*prop, _self, [&](auto& col) {
+    proposals.modify(prop, _self, [&](auto& col) {
         col.status = static_cast<uint8_t>(proposal_status::inprogress);
-        col.remaining_funds = prop->total_requested_funds;
+        col.remaining_funds = prop.total_requested_funds;
         col.update_ts = time_point_sec(current_time_point());
     });
 
-    set_pcomment(prop->proposal_id, "Admin skipped voting", _self);
+    set_pcomment(prop.proposal_id, "Admin skipped voting", _self);
     inc_stats_count(static_cast<uint64_t>(proposal_status::inprogress), "Proposals in progress");
 
 }
