@@ -82,6 +82,7 @@ CONTRACT waxlabs : public contract
     ACTION wipeconf();
 
     ACTION wipebodies(uint32_t count);
+    ACTION wipeprofiles(uint32_t count);
 
     //initialize the contract
     //pre: config table not initialized

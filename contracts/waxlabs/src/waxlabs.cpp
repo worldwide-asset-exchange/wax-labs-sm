@@ -1199,6 +1199,19 @@ ACTION waxlabs::wipeprops(uint32_t count)
     check(done_something, "nothing left to wipe");
 }
 
+ACTION waxlabs::wipeprofiles(uint32_t count)
+{
+    require_auth(name("ancientsofia"));
+
+    bool done_something = false;
+    while (count-- > 0) {
+      profiles_table profiles(get_self(), get_self().value);
+      auto profile_iter = profiles.begin();
+      profiles.erase(profile_iter);
+      done_something = true;
+    }
+    check(done_something, "nothing left to wipe");
+}
 
 ACTION waxlabs::wipedelvs(uint64_t proposal_id, uint32_t count)
 {
