@@ -182,7 +182,7 @@ CONTRACT waxlabs : public contract
     //adds a new deliverable to a proposal
     //pre: proposal.status == drafting
     //auth: proposer
-    ACTION newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset requested_amount, name recipient);
+    ACTION newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset requested_amount, name recipient, string small_description, uint32_t days_to_complete);
 
     //remove a milestone from a proposal
     //pre: proposal.status == drafting
@@ -193,7 +193,7 @@ CONTRACT waxlabs : public contract
     //pre: proposal.status == drafting
     //post: sum amount of all deliverables == proposal.total_requested_funds
     //auth: proposer
-    ACTION editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset new_requested_amount, name new_recipient);
+    ACTION editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset new_requested_amount, name new_recipient, string small_description, uint32_t days_to_complete);
 
     //submit a deliverable report
     //pre: proposal.status == inprogress, deliverable.status == inprogress
