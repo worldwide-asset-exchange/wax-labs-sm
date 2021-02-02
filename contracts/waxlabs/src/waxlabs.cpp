@@ -1040,6 +1040,7 @@ ACTION waxlabs::skipvoting(uint64_t proposal_id, string memo)
     
     dec_stats_count(static_cast<uint64_t>(proposal_status::submitted));
 
+    check(is_account(prop.reviewer), "reviewer account needs to be set before skipping vote");
     check(conf.available_funds >= prop.total_requested_funds, "WAX Labs has insufficient available funds");
 
     //update config funds
