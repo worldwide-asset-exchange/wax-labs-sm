@@ -251,7 +251,7 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
     string new_road_map = prop.road_map;
     if(road_map)
     {
-        new_road_map = road_map;
+        new_road_map = *road_map;
         check(new_road_map.length() <= MAX_ROAD_MAP_LEN, "Road map is too long");
     }
 
