@@ -423,10 +423,11 @@ CONTRACT waxlabs : public contract
         string image_url;
         string website;
         string contact;
+        string group_name;
 
         uint64_t primary_key() const { return wax_account.value; }
         EOSLIB_SERIALIZE(profile, (wax_account)(full_name)(country)(bio)
-            (image_url)(website)(contact))
+            (image_url)(website)(contact)(group_name))
     };
     typedef multi_index<name("profiles"), profile> profiles_table;
 
