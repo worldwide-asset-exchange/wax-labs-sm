@@ -588,7 +588,7 @@ ACTION waxlabs::deleteprop(uint64_t proposal_id)
 
 //======================== deliverable actions ========================
 
-ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset requested_amount, name recipient)
+ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset requested_amount, name recipient, string small_description, uint32_t days_to_complete)
 {
     //open config singleton, get config
     config_singleton configs(get_self(), get_self().value);
@@ -607,6 +607,7 @@ ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset re
     check(requested_amount.amount > 0, "must request a positive amount");
     check(prop.total_requested_funds + requested_amount <= conf.max_requested, "total requested funds above allowed maximum per proposal");
     check(is_account(recipient), "recipient account doesn't exist");
+    check(small_description <= waxlabs::MAX_SMALL_DESC_LEN, "Small description can't be over " + waxlabs::MAX_SMALL_DESC_LEN);
 
     //add new deliverable
     //ram payer: proposer
@@ -615,6 +616,8 @@ ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset re
         col.deliverable_id = deliverable_id;
         col.requested = requested_amount;
         col.recipient = recipient;
+        col.small_description = small_description;
+        col.days_to_complete = days_to_complete;
     });
 
     //update proposal
@@ -654,7 +657,7 @@ ACTION waxlabs::rmvdeliv(uint64_t proposal_id, uint64_t deliverable_id)
     deliverables.erase(deliv);
 }
 
-ACTION waxlabs::editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset new_requested_amount, name new_recipient)
+ACTION waxlabs::editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset new_requested_amount, name new_recipient, string small_description, uint32_t days_to_complete)
 {
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
@@ -682,11 +685,14 @@ ACTION waxlabs::editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset n
     check(new_total_requested.amount > 0, "total requested funds must be above zero");
     check(new_total_requested <= conf.max_requested, "total requested funds must be at or below allowed maximum");
     check(is_account(new_recipient), "new recipient account doesn't exist");
+    check(small_description <= waxlabs::MAX_SMALL_DESC_LEN, "Small description can't be over " + waxlabs::MAX_SMALL_DESC_LEN);
 
     //update deliverable
     deliverables.modify(deliv, same_payer, [&](auto& col) {
         col.requested = new_requested_amount;
         col.recipient = new_recipient;
+        col.small_description = small_description;
+        col.days_to_complete = days_to_complete;
     });
 
     //update proposal

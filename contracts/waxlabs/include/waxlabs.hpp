@@ -34,6 +34,7 @@ CONTRACT waxlabs : public contract
     const size_t  MAX_DESCR_LEN = 160;
     const size_t  MAX_BODY_LEN = 4096;
     const size_t  MAX_IMGURL_LEN = 256;
+    const size_t  MAX_SMALL_DESC_LEN = 80;
 
     const uint64_t MAX_PROPOSAL_ID = 0xFFFFFFFF;
 
@@ -400,10 +401,12 @@ CONTRACT waxlabs : public contract
         name recipient; //account that will receive the funds
         string report = ""; //raw text or link to report for deliverable
         time_point_sec review_time = time_point_sec(0); //time of review (set to genesis date by default)
+        string small_description;
+        uint32_t days_to_complete;
 
         uint64_t primary_key() const { return deliverable_id; }
         EOSLIB_SERIALIZE(deliverable, (deliverable_id)(status)(requested)
-            (recipient)(report)(review_time))
+            (recipient)(report)(review_time)(small_description)(days_to_complete))
     };
     typedef multi_index<name("deliverables"), deliverable> deliverables_table;
 
