@@ -35,6 +35,7 @@ CONTRACT waxlabs : public contract
     const size_t  MAX_BODY_LEN = 4096;
     const size_t  MAX_IMGURL_LEN = 256;
     const size_t  MAX_SMALL_DESC_LEN = 80;
+    const size_t  MAX_ROAD_MAP_LEN = 2048;
 
     const uint64_t MAX_PROPOSAL_ID = 0xFFFFFFFF;
 
@@ -123,14 +124,14 @@ CONTRACT waxlabs : public contract
     // account must have more than
     //auth: proposer
     ACTION draftprop(string title, string description, string mdbody, name proposer,
-        string image_url, uint32_t estimated_time, name category);
+        string image_url, uint32_t estimated_time, name category, string road_map);
 
     //edit a proposal draft
     //pre: proposal.status == drafting
     //auth: proposer
     ACTION editprop(uint64_t proposal_id, optional<string> title,
         optional<string> description, optional<string> mdbody, optional<name> category,
-        string image_url, uint32_t estimated_time);
+        string image_url, uint32_t estimated_time, optional<string> road_map);
 
     //submit a proposal draft for admin approval
     //pre: proposal.status == drafting, reviewer is set.
@@ -335,7 +336,7 @@ CONTRACT waxlabs : public contract
         map<name, asset> ballot_results = { { name("yes"), asset(0, VOTE_SYM) }, { name("no"), asset(0, VOTE_SYM) } }; //final ballot results from decide
         time_point_sec update_ts; // timestamp of latest proposal update
         time_point_sec vote_end_time; // vote_endtime that was passed to decide contract
-
+        string road_map;
 
         uint64_t primary_key() const { return proposal_id; }
 
@@ -358,7 +359,7 @@ CONTRACT waxlabs : public contract
         EOSLIB_SERIALIZE(proposal, (proposal_id)(proposer)(category)(status)(ballot_name)
             (title)(description)(image_url)(estimated_time)(total_requested_funds)(remaining_funds)
             (deliverables)(deliverables_completed)(reviewer)(ballot_results)
-            (update_ts)(vote_end_time))
+            (update_ts)(vote_end_time)(road_map))
     };
     typedef multi_index<name("proposals"), proposal,
         indexed_by<name("bystatcat"), const_mem_fun<proposal, uint64_t, &proposal::by_status_and_category>>,

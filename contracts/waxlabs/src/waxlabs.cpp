@@ -130,7 +130,7 @@ ACTION waxlabs::rmvcategory(name category_name)
 //======================== proposal actions ========================
 
 ACTION waxlabs::draftprop(string title, string description, string mdbody, name proposer,
-    string image_url, uint32_t estimated_time, name category)
+    string image_url, uint32_t estimated_time, name category, string road_map)
 {
     //authenticate
     require_auth(proposer);
@@ -155,6 +155,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
     check(cat_itr != conf.categories.end(), "invalid category");
     check(depr_itr == conf.cat_deprecated.end(), "this category name is deprecated");
     check(estimated_time > 0, "estimated time must be greater than zero");
+    check(road_map.length() <= MAX_ROAD_MAP_LEN, "road map is too long");
 
     //subtract DRAFT_COST from account balance
     sub_balance(proposer, DRAFT_COST);
@@ -190,6 +191,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
         col.total_requested_funds = asset(0, WAX_SYM);
         col.deliverables = 0;
         col.update_ts = time_point_sec(current_time_point());
+        col.road_map = road_map;
     });
 
     mdbodies.emplace(proposer, [&](auto& col) {
@@ -200,7 +202,7 @@ ACTION waxlabs::draftprop(string title, string description, string mdbody, name 
 
 ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
     optional<string> description, optional<string> mdbody, optional<name> category,
-    string image_url, uint32_t estimated_time)
+    string image_url, uint32_t estimated_time, optional<string> road_map)
 {
     //open config singleton, get config
     config_singleton configs(get_self(), get_self().value);
@@ -246,6 +248,13 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
         new_category = std::distance(conf.categories.begin(), cat_itr);
     }
 
+    string new_road_map = prop.road_map;
+    if(road_map)
+    {
+        new_road_map = road_map;
+        check(new_road_map.length() <= MAX_ROAD_MAP_LEN, "Road map is too long");
+    }
+
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.category = new_category;
@@ -254,6 +263,7 @@ ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
         col.image_url = image_url;
         col.estimated_time = estimated_time;
         col.update_ts = time_point_sec(current_time_point());
+        col.road_map = new_road_map;
     });
 
     mdbodies.modify(body, same_payer, [&](auto& col) {
