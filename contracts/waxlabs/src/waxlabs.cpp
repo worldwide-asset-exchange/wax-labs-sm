@@ -607,7 +607,7 @@ ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset re
     check(requested_amount.amount > 0, "must request a positive amount");
     check(prop.total_requested_funds + requested_amount <= conf.max_requested, "total requested funds above allowed maximum per proposal");
     check(is_account(recipient), "recipient account doesn't exist");
-    check(small_description <= waxlabs::MAX_SMALL_DESC_LEN, "Small description can't be over " + waxlabs::MAX_SMALL_DESC_LEN);
+    check(small_description.lenght() <= waxlabs::MAX_SMALL_DESC_LEN, "Small description can't be over " + waxlabs::MAX_SMALL_DESC_LEN);
 
     //add new deliverable
     //ram payer: proposer
@@ -685,7 +685,7 @@ ACTION waxlabs::editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset n
     check(new_total_requested.amount > 0, "total requested funds must be above zero");
     check(new_total_requested <= conf.max_requested, "total requested funds must be at or below allowed maximum");
     check(is_account(new_recipient), "new recipient account doesn't exist");
-    check(small_description <= waxlabs::MAX_SMALL_DESC_LEN, "Small description can't be over " + waxlabs::MAX_SMALL_DESC_LEN);
+    check(small_description.lenght() <= waxlabs::MAX_SMALL_DESC_LEN, "Small description can't be over " + waxlabs::MAX_SMALL_DESC_LEN);
 
     //update deliverable
     deliverables.modify(deliv, same_payer, [&](auto& col) {
