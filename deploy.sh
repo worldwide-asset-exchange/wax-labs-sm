@@ -29,4 +29,4 @@ fi
 echo ">>> Deploying $contract contract to $account on $network..."
 
 # eosio v1.8.0
-cleos -u $url set contract $account ./build/ $contract.wasm $contract.abi -p $account
+cleos -u $url set contract $account ./build/ $contract.wasm $contract.abi -p $account@deploy
