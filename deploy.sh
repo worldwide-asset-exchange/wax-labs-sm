@@ -13,7 +13,7 @@ account=$2
 
 #network
 if [[ "$3" == "mainnet" ]]; then 
-    url=https://api.wax.io
+    url=https://wax.greymass.com
     network="WAX Mainnet"
 elif [[ "$3" == "testnet" ]]; then
     url=https://testnet.waxsweden.org

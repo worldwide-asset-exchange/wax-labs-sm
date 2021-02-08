@@ -30,17 +30,19 @@ build-test-deploy-testnet:
 build-test-deploy-mainnet:
   script:
     # compile sc
-    - eosio-cpp -abigen oig/src/oig.cpp -o oig/build/oig.wasm -I oig/include/
+    - chmod +x build.sh && chmod +x deploy.sh
+    - mkdir build
+    - ./build.sh waxlabs
     # run tests
     - echo "insert Hydra here. https://docs.klevoya.com/"
     # unlock build server wallet
     - cleos wallet lock
     - cat ~/wallet.pw  | cleos wallet unlock --password
     # update smart contract on chain
-    - cleos -u https://wax.greymass.com set contract oig oig/build/ oig.wasm oig.abi -p oig@deploy
+    - ./deploy.sh waxlabs labs mainnet
   stage: prod
   artifacts:
     paths:
-      - oig/build/
+      - build/
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
