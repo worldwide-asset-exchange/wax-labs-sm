@@ -6,7 +6,7 @@ ACTION waxlabs::init(string contract_name, string contract_version, name initial
 {
     //authenticate
     require_auth(get_self());
-    
+
     //open config singleton
     config_singleton configs(get_self(), get_self().value);
 
@@ -87,14 +87,19 @@ ACTION waxlabs::addcategory(name new_category)
     //authenticate
     require_auth(conf.admin_acct);
 
-    //initialize
-    auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), new_category);
+    //check if it's a deprecated categpry
+    auto depr_itr = std::find(conf.cat_deprecated.begin(), conf.cat_deprecated.end(), new_category);
+    if (depr_itr != conf.cat_deprecated.end()) {
+        conf.cat_deprecated.erase(depr_itr);
+    }
+    else {
+        check(conf.categories.size() < MAX_CATEGORIES, "too many categories defined");
+        auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), new_category);
+        check(cat_itr == conf.categories.end(), "category name already exists");
 
-    //validate
-    check(cat_itr == conf.categories.end(), "category name already exists");
-
-    //add new category to categories list
-    conf.categories.push_back(new_category);
+        //add new category to categories list
+        conf.categories.push_back(new_category);
+    }
 
     //set new config
     configs.set(conf, get_self());
@@ -109,14 +114,14 @@ ACTION waxlabs::rmvcategory(name category_name)
     //authenticate
     require_auth(conf.admin_acct);
 
-    //initialize
-    auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), category_name);
-
     //validate
+    auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), category_name);
     check(cat_itr != conf.categories.end(), "category name not found");
+    auto depr_itr = std::find(conf.cat_deprecated.begin(), conf.cat_deprecated.end(), category_name);
+    check(depr_itr == conf.cat_deprecated.end(), "category name is already in deprecated list");
 
-    //erase category from categories list
-    conf.categories.erase(cat_itr);
+    //add category to deprecated list
+    conf.cat_deprecated.push_back(category_name);
 
     //set new config
     configs.set(conf, get_self());
@@ -124,8 +129,8 @@ ACTION waxlabs::rmvcategory(name category_name)
 
 //======================== proposal actions ========================
 
-ACTION waxlabs::draftprop(string title, string description, string content, name proposer, 
-    name category, asset total_requested_funds, uint8_t deliverables_count)
+ACTION waxlabs::draftprop(string title, string description, string mdbody, name proposer,
+    string image_url, uint32_t estimated_time, name category, string road_map)
 {
     //authenticate
     require_auth(proposer);
@@ -139,53 +144,138 @@ ACTION waxlabs::draftprop(string title, string description, string content, name
     auto& prof = profiles.get(proposer.value, "profile not found");
 
     //initialize
-    asset per_deliverable = asset(int64_t(total_requested_funds.amount / deliverables_count), WAX_SYM);
     auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), category);
+    auto depr_itr = std::find(conf.cat_deprecated.begin(), conf.cat_deprecated.end(), category);
 
     //validate
-    check(total_requested_funds <= conf.max_requested, "requested amount exceeds allowed maximum requested amount");
-    check(total_requested_funds >= conf.min_requested, "requested amount is less than minimum requested amount");
-    check(total_requested_funds.amount > 0, "requested amount must be greater than zero");
-    check(total_requested_funds.symbol == WAX_SYM, "requested amount must be denominated in WAX");
-    check(deliverables_count > 0, "deliverables count must be greater than 0");
+    check(title.length() <= MAX_TITLE_LEN, "title string is too long");
+    check(description.length() <= MAX_DESCR_LEN, "description string is too long");
+    check(mdbody.length() <= MAX_BODY_LEN, "body string is too long");
+    check(image_url.length() <= MAX_IMGURL_LEN, "image URL string is too long");
     check(cat_itr != conf.categories.end(), "invalid category");
+    check(depr_itr == conf.cat_deprecated.end(), "this category name is deprecated");
+    check(estimated_time > 0, "estimated time must be greater than zero");
+    check(road_map.length() <= MAX_ROAD_MAP_LEN, "road map is too long");
 
-    //open proposals table
+    //subtract DRAFT_COST from account balance
+    sub_balance(proposer, DRAFT_COST);
+    conf.available_funds += DRAFT_COST;
+
+    size_t cat_pos = std::distance(conf.categories.begin(), cat_itr);
+
+    //open tables
     proposals_table proposals(get_self(), get_self().value);
+    mdbodies_table mdbodies(get_self(), get_self().value);
 
     //initialize
-    uint64_t new_proposal_id = proposals.available_primary_key();
+    uint64_t new_proposal_id = conf.last_proposal_id + 1;
+    check(new_proposal_id <= MAX_PROPOSAL_ID, "too many proposals");
+
+    // update last_proposal_id
+    conf.last_proposal_id = new_proposal_id;
+    configs.set(conf, get_self());
+
+    //Increment stats for drafting proposals
+    inc_stats_count(static_cast<uint64_t>(proposal_status::drafting), "Proposals in drafting");
 
     //create new proposal
-    //ram payer: contract
-    proposals.emplace(get_self(), [&](auto& col) {
+    //ram payer: proposer
+    proposals.emplace(proposer, [&](auto& col) {
         col.proposal_id = new_proposal_id;
         col.proposer = proposer;
-        col.category = category;
+        col.category = cat_pos;
         col.title = title;
         col.description = description;
-        col.content = content;
-        col.total_requested_funds = total_requested_funds;
-        col.deliverables = deliverables_count;
+        col.image_url = image_url;
+        col.estimated_time = estimated_time;
+        col.total_requested_funds = asset(0, WAX_SYM);
+        col.deliverables = 0;
+        col.update_ts = time_point_sec(current_time_point());
+        col.road_map = road_map;
     });
 
-    //create each deliverable
-    for (uint8_t i = 1; i <= deliverables_count; i++) {
-        //open deliverables table
-        deliverables_table deliverables(get_self(), new_proposal_id);
+    mdbodies.emplace(proposer, [&](auto& col) {
+        col.proposal_id = new_proposal_id;
+        col.content = mdbody;
+    });
+}
 
-        //create deliverable
-        //ram payer: contract
-        deliverables.emplace(get_self(), [&](auto& col) {
-            col.deliverable_id = uint64_t(i);
-            col.requested = per_deliverable;
-            col.recipient = proposer;
-        });
+ACTION waxlabs::editprop(uint64_t proposal_id, optional<string> title,
+    optional<string> description, optional<string> mdbody, optional<name> category,
+    string image_url, uint32_t estimated_time, optional<string> road_map)
+{
+    //open config singleton, get config
+    config_singleton configs(get_self(), get_self().value);
+    auto conf = configs.get();
+
+    //open tables, get proposal and body
+    proposals_table proposals(get_self(), get_self().value);
+    auto& prop = proposals.get(proposal_id, "proposal not found");
+    mdbodies_table mdbodies(get_self(), get_self().value);
+    auto& body = mdbodies.get(proposal_id, "proposal not found in mbodies");
+
+    //authenticate
+    require_auth(prop.proposer);
+
+    //validate
+    check(prop.status == proposal_status::drafting, "proposal must be in drafting state to edit");
+    check(estimated_time > 0, "estimated time must be greater than zero");
+
+    string new_title = prop.title;
+    if (title) {
+        new_title = *title;
+        check(new_title.length() <= MAX_TITLE_LEN, "title string is too long");
     }
+
+    string new_desc = prop.description;
+    if (description) {
+        new_desc = *description;
+        check(new_desc.length() <= MAX_DESCR_LEN, "description string is too long");
+    }
+
+    string new_mdbody = body.content;
+    if (mdbody) {
+        new_mdbody = *mdbody;
+        check(new_mdbody.length() <= MAX_BODY_LEN, "body string is too long");
+    }
+
+    uint8_t new_category = prop.category;
+    if (category) {
+        auto cat_itr = std::find(conf.categories.begin(), conf.categories.end(), *category);
+        check(cat_itr != conf.categories.end(), "invalid category");
+        auto depr_itr = std::find(conf.cat_deprecated.begin(), conf.cat_deprecated.end(), category);
+        check(depr_itr == conf.cat_deprecated.end(), "this category name is deprecated");
+        new_category = std::distance(conf.categories.begin(), cat_itr);
+    }
+
+    string new_road_map = prop.road_map;
+    if(road_map)
+    {
+        new_road_map = *road_map;
+        check(new_road_map.length() <= MAX_ROAD_MAP_LEN, "Road map is too long");
+    }
+
+    //update proposal
+    proposals.modify(prop, same_payer, [&](auto& col) {
+        col.category = new_category;
+        col.title = new_title;
+        col.description = new_desc;
+        col.image_url = image_url;
+        col.estimated_time = estimated_time;
+        col.update_ts = time_point_sec(current_time_point());
+        col.road_map = new_road_map;
+    });
+
+    mdbodies.modify(body, same_payer, [&](auto& col) {
+        col.content = new_mdbody;
+    });
 }
 
 ACTION waxlabs::submitprop(uint64_t proposal_id)
 {
+    config_singleton configs(get_self(), get_self().value);
+    auto conf = configs.get();
+
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
@@ -194,11 +284,20 @@ ACTION waxlabs::submitprop(uint64_t proposal_id)
     require_auth(prop.proposer);
 
     //validate
-    check(prop.status == name("drafting"), "proposal must be in drafting state to submit");
+    check(prop.status == proposal_status::drafting, "proposal must be in drafting state to submit");
+    check(prop.deliverables >= 1, "proposal must have at least one deliverable to submit");
+    check(prop.total_requested_funds >= conf.min_requested, "requested amount is less than minimum requested amount");
+    check(prop.total_requested_funds <= conf.max_requested, "total requested is more than maximum allowed");
+
+    //decrement current status
+    dec_stats_count(static_cast<uint64_t>(prop.status));
+    //Increment stats for submitted proposals
+    inc_stats_count(static_cast<uint64_t>(proposal_status::submitted), "Proposals in review");
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
-        col.status = name("submitted");
+        col.status = static_cast<uint8_t>(proposal_status::submitted);
+        col.update_ts = time_point_sec(current_time_point());
     });
 
 }
@@ -217,27 +316,44 @@ ACTION waxlabs::reviewprop(uint64_t proposal_id, bool approve, string memo)
     auto& prop = proposals.get(proposal_id, "proposal not found");
 
     //validate
-    check(prop.status == name("submitted"), "proposal must be in submitted state to review");
+    check(prop.status == proposal_status::submitted, "proposal must be in submitted state to review");
+
+    //decrement current status
+    dec_stats_count(static_cast<uint64_t>(proposal_status::submitted));
+
+    set_pcomment(proposal_id, memo, conf.admin_acct);
 
     //if admin approved
     if (approve) {
+        //check if reviewer is set
+        check(is_account(prop.reviewer), "reviewer account needs to be set before approving");
         //update proposal to approved
         proposals.modify(prop, same_payer, [&](auto& col) {
-            col.status = name("approved");
+            col.status = static_cast<uint8_t>(proposal_status::approved);
+            col.update_ts = time_point_sec(current_time_point());
         });
+
+        //Increment stats for approved proposals
+        inc_stats_count(static_cast<uint64_t>(proposal_status::approved), "Proposals approved");
     } else {
         //update proposal to failed
         proposals.modify(prop, same_payer, [&](auto& col) {
-            col.status = name("failed");
+            col.status = static_cast<uint8_t>(proposal_status::failed);
+            col.update_ts = time_point_sec(current_time_point());
         });
+
+        //Increment stats for failed proposals
+        inc_stats_count(static_cast<uint64_t>(proposal_status::failed), "Proposals failed");
     }
 }
 
 ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
 {
-    //open proposals table, get proposal
+    //open tables, get proposal
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
+    mdbodies_table mdbodies(get_self(), get_self().value);
+    auto& body = mdbodies.get(proposal_id, "proposal not found in mbodies");
 
     //authenticate
     require_auth(prop.proposer);
@@ -256,15 +372,22 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
     sub_balance(prop.proposer, newballot_fee);
 
     //validate
-    check(prop.status == "approved"_n, "proposal must be approved by admin to begin voting");
-    check(prop.total_requested_funds <= conf.max_requested, "total requested is more than maximum allowed");
+    check(prop.status == proposal_status::approved, "proposal must be approved by admin to begin voting");
     check(conf.deposited_funds >= newballot_fee, "not enough deposited funds");
+
+    //dec and inc stats_counts
+    dec_stats_count(static_cast<uint64_t>(proposal_status::approved));
+    inc_stats_count(static_cast<uint64_t>(proposal_status::voting), "Proposals in voting");
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
-        col.status = name("voting");
+        col.status = static_cast<uint8_t>(proposal_status::voting);
         col.ballot_name = ballot_name;
+        col.update_ts = time_point_sec(current_time_point());
+        col.vote_end_time = ballot_end_time;
     });
+
+    set_pcomment(proposal_id, "", prop.proposer);
 
     //update and set config
     conf.deposited_funds -= newballot_fee;
@@ -287,13 +410,13 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
         name("1token1vote"), //voting_method
         ballot_options //initial_options
     )).send();
-    
+
     //send inline editdetails to decide
     action(permission_level{get_self(), name("active")}, name("decide"), name("editdetails"), make_tuple(
         ballot_name, //ballot_name
         prop.title, //title
         prop.description, //description
-        prop.content //content
+        body.content //content
     )).send();
 
     //toggle ballot votestake on (default is off)
@@ -301,7 +424,7 @@ ACTION waxlabs::beginvoting(uint64_t proposal_id, name ballot_name)
         ballot_name, //ballot_name
         name("votestake") //setting_name
     )).send();
-    
+
     //send inline openvoting to decide
     action(permission_level{get_self(), name("active")}, name("decide"), name("openvoting"), make_tuple(
         ballot_name, //ballot_name
@@ -323,7 +446,7 @@ ACTION waxlabs::endvoting(uint64_t proposal_id)
     check(has_auth(prop.proposer) || has_auth(conf.admin_acct), "requires proposer or admin to authenticate");
 
     //validate
-    check(prop.status == name("voting"), "proposal must be in voting state");
+    check(prop.status == proposal_status::voting, "proposal must be in voting state");
 
     //send inline closevoting to decide
     action(permission_level{get_self(), name("active")}, name("decide"), name("closevoting"), make_tuple(
@@ -354,44 +477,71 @@ ACTION waxlabs::setreviewer(uint64_t proposal_id, uint64_t deliverable_id, name 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.reviewer = new_reviewer;
+        col.update_ts = time_point_sec(current_time_point());
     });
 }
 
 ACTION waxlabs::cancelprop(uint64_t proposal_id, string memo)
 {
+    //open config singleton, get config
+    config_singleton configs(get_self(), get_self().value);
+    auto conf = configs.get();
+
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
 
-    //authenticate
-    require_auth(prop.proposer);
-
-    //validate
-    check(prop.status == name("submitted") || prop.status == name("approved") || prop.status == name("voting"), 
-        "proposal must be in submitted, approved, or voting stages to cancel");
-
-    //update proposal
-    proposals.modify(prop, same_payer, [&](auto& col) {
-        col.status = name("cancelled");
-    });
-    
-    //reject all deliverables
-    for (auto i = 1; i <= prop.deliverables; i++) {
-        //open deliverables table
-        deliverables_table deliverables(get_self(), proposal_id);
-        auto& deliv = deliverables.get(i, "deliverable not found");
-
-        //update deliverable
-        deliverables.modify(deliv, same_payer, [&](auto& col) {
-            col.status = name("rejected");
-        });
+    //authenticate and get the payer
+    name payer;
+    if (has_auth(prop.proposer)) {
+        payer = prop.proposer;
+    }
+    else if (has_auth(conf.admin_acct)) {
+        payer = conf.admin_acct;
+    }
+    else {
+        check(false, "requires proposer or admin to authenticate");
     }
 
-    //send inline cancelballot to decide
-    action(permission_level{get_self(), name("active")}, name("decide"), name("cancelballot"), make_tuple(
-        prop.ballot_name, //ballot_name
-        string("WAX Labs Proposal Cancellation") //memo
-    )).send();
+    //initialzie
+    proposal_status initial_status = static_cast<proposal_status>(prop.status);
+
+    //validate
+    check(prop.status == proposal_status::drafting || prop.status == proposal_status::submitted ||
+          prop.status == proposal_status::approved || prop.status == proposal_status::voting,
+          "proposal must be in drafting, submitted, approved, or voting stages to cancel");
+
+    //inc cancelled / dec current stats
+    dec_stats_count(static_cast<uint64_t>(prop.status));
+    inc_stats_count(static_cast<uint64_t>(proposal_status::cancelled), "Proposals cancelled");
+
+    //update proposal.
+    proposals.modify(prop, same_payer, [&](auto& col) {
+        col.status = static_cast<uint8_t>(proposal_status::cancelled);
+        col.update_ts = time_point_sec(current_time_point());
+    });
+
+    set_pcomment(proposal_id, memo, payer);
+
+    //reject all deliverables
+    deliverables_table deliverables(get_self(), proposal_id);
+    auto deliv_iter = deliverables.begin();
+    while( deliv_iter != deliverables.end() ) {
+        deliverables.modify(*deliv_iter, _self, [&](auto& col) {
+            col.status = static_cast<uint8_t>(deliverable_status::rejected);
+        });
+        set_dcomment(proposal_id, deliv_iter->deliverable_id, memo, payer);
+        deliv_iter++;
+    }
+
+    //Decide has the ballot only when proposal is in voting state
+    if (initial_status == proposal_status::voting) {
+        //send inline cancelballot to decide
+        action(permission_level{get_self(), name("active")}, name("decide"), name("cancelballot"), make_tuple(
+            prop.ballot_name, //ballot_name
+            string("WAX Labs Proposal Cancellation") //memo
+        )).send();
+    }
 }
 
 ACTION waxlabs::deleteprop(uint64_t proposal_id)
@@ -403,13 +553,19 @@ ACTION waxlabs::deleteprop(uint64_t proposal_id)
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
+    mdbodies_table mdbodies(get_self(), get_self().value);
+    auto& body = mdbodies.get(proposal_id, "proposal not found in mbodies");
 
     //authenticate
     check(has_auth(prop.proposer) || has_auth(conf.admin_acct), "requires proposer or admin to authenticate");
 
     //validate
-    check(prop.status == name("failed") || prop.status == name("cancelled") || prop.status == name("completed"), 
-        "proposal must be failed, cancelled, or completed to delete");
+    check(prop.status == proposal_status::failed || prop.status == proposal_status::cancelled ||
+          prop.status == proposal_status::completed,
+          "proposal must be failed, cancelled, or completed to delete");
+
+    //decrement status count
+    dec_stats_count(static_cast<uint64_t>(prop.status));
 
     //if remaining funds greater than zero
     if (prop.remaining_funds.amount > 0) {
@@ -420,24 +576,29 @@ ACTION waxlabs::deleteprop(uint64_t proposal_id)
         //update config
         configs.set(conf, get_self());
     }
-    
-    //erase each deliverable
-    for (auto i = 1; i <= prop.deliverables; i++) {
-        //open deliverables table, get deliverable
-        deliverables_table deliverables(get_self(), proposal_id);
-        auto& deliv = deliverables.get(i, "deliverable not found");
 
-        //erase deliverable
-        deliverables.erase(deliv);
+    set_pcomment(proposal_id, "", _self); //release comment RAM
+
+    //erase each deliverable
+    deliverables_table deliverables(get_self(), proposal_id);
+    auto deliv_iter = deliverables.begin();
+    while( deliv_iter != deliverables.end() ) {
+        set_dcomment(proposal_id, deliv_iter->deliverable_id, "", _self); //release comment RAM
+        deliv_iter = deliverables.erase(deliv_iter);
     }
 
     //erase proposal
     proposals.erase(prop);
+    mdbodies.erase(body);
 }
+
+
+
+
 
 //======================== deliverable actions ========================
 
-ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset requested_amount, name recipient)
+ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset requested_amount, name recipient, string small_description, uint32_t days_to_complete)
 {
     //open config singleton, get config
     config_singleton configs(get_self(), get_self().value);
@@ -446,31 +607,34 @@ ACTION waxlabs::newdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset re
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
     auto& prop = proposals.get(proposal_id, "proposal not found");
+    check(prop.deliverables < MAX_DELIVERABLES, "too many deliverables");
 
     //authenticate
     require_auth(prop.proposer);
 
-    //open deliverables table
-    deliverables_table deliverables(get_self(), proposal_id);
-
     //validate
-    check(prop.status == name("drafting"), "proposal must be in drafting state to add deliverable");
+    check(prop.status == proposal_status::drafting, "proposal must be in drafting state to add deliverable");
     check(requested_amount.amount > 0, "must request a positive amount");
-    check(prop.total_requested_funds + requested_amount <= conf.max_requested, "total requested funds ablove allowed maximum per proposal");
+    check(prop.total_requested_funds + requested_amount <= conf.max_requested, "total requested funds above allowed maximum per proposal");
     check(is_account(recipient), "recipient account doesn't exist");
+    check(small_description.length() <= waxlabs::MAX_SMALL_DESC_LEN, "Small description can't be over " + waxlabs::MAX_SMALL_DESC_LEN);
 
     //add new deliverable
-    //ram payer: contract
-    deliverables.emplace(get_self(), [&](auto& col) {
+    //ram payer: proposer
+    deliverables_table deliverables(get_self(), proposal_id);
+    deliverables.emplace(prop.proposer, [&](auto& col) {
         col.deliverable_id = deliverable_id;
         col.requested = requested_amount;
         col.recipient = recipient;
+        col.small_description = small_description;
+        col.days_to_complete = days_to_complete;
     });
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.total_requested_funds += requested_amount;
         col.deliverables += 1;
+        col.update_ts = time_point_sec(current_time_point());
     });
 }
 
@@ -488,21 +652,22 @@ ACTION waxlabs::rmvdeliv(uint64_t proposal_id, uint64_t deliverable_id)
     auto& deliv = deliverables.get(deliverable_id, "deliverable not found");
 
     //validate
-    check(prop.status == name("drafting"), "proposal must be in drafting state to remove deliverable");
-    check(prop.deliverables > 1, "proposal must have at least one deliverable");
-    check(prop.total_requested_funds - deliv.requested > asset(0, WAX_SYM), "total requested amount cannot be at or below zero");
+    check(prop.status == proposal_status::drafting, "proposal must be in drafting state to remove deliverable");
+    check(prop.total_requested_funds - deliv.requested >= asset(0, WAX_SYM), "total requested amount cannot be below zero");
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.total_requested_funds -= deliv.requested;
         col.deliverables -= 1;
+        col.update_ts = time_point_sec(current_time_point());
     });
 
+    set_dcomment(proposal_id, deliverable_id, "", _self); //release comment RAM
     //erase deliverable
     deliverables.erase(deliv);
 }
 
-ACTION waxlabs::editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset new_requested_amount, name new_recipient)
+ACTION waxlabs::editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset new_requested_amount, name new_recipient, string small_description, uint32_t days_to_complete)
 {
     //open proposals table, get proposal
     proposals_table proposals(get_self(), get_self().value);
@@ -524,22 +689,26 @@ ACTION waxlabs::editdeliv(uint64_t proposal_id, uint64_t deliverable_id, asset n
     asset new_total_requested = prop.total_requested_funds + request_delta;
 
     //validate
-    check(prop.status == name("drafting"), "proposal must be in drafting state to edit deliverable");
-    check(deliv.status == name("drafting"), "deliverable must be in drafting state to edit");
+    check(prop.status == proposal_status::drafting, "proposal must be in drafting state to edit deliverable");
+    check(deliv.status == deliverable_status::drafting, "deliverable must be in drafting state to edit");
     check(new_requested_amount.amount > 0, "must request a positive amount");
     check(new_total_requested.amount > 0, "total requested funds must be above zero");
     check(new_total_requested <= conf.max_requested, "total requested funds must be at or below allowed maximum");
     check(is_account(new_recipient), "new recipient account doesn't exist");
+    check(small_description.length() <= waxlabs::MAX_SMALL_DESC_LEN, "Small description can't be over " + waxlabs::MAX_SMALL_DESC_LEN);
 
     //update deliverable
     deliverables.modify(deliv, same_payer, [&](auto& col) {
         col.requested = new_requested_amount;
         col.recipient = new_recipient;
+        col.small_description = small_description;
+        col.days_to_complete = days_to_complete;
     });
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.total_requested_funds = new_total_requested;
+        col.update_ts = time_point_sec(current_time_point());
     });
 }
 
@@ -557,15 +726,17 @@ ACTION waxlabs::submitreport(uint64_t proposal_id, uint64_t deliverable_id, stri
     auto& deliv = deliverables.get(deliverable_id, "deliverable not found");
 
     //validate
-    check(prop.status == name("inprogress"), "must submit report when proposal is in progress");
-    check(deliv.status == name("inprogress"), "deliverable must be in progress to submit report");
+    check(prop.status == proposal_status::inprogress, "must submit report when proposal is in progress");
+    check(deliv.status == deliverable_status::inprogress || deliv.status == deliverable_status::rejected,
+        "deliverable must be in progress or rejected to submit/resubmit report");
     check(report != "", "report cannot be empty");
 
     //update deliverable
     deliverables.modify(deliv, same_payer, [&](auto& col) {
-        col.status = name("reported");
+        col.status = static_cast<uint8_t>(deliverable_status::reported);
         col.report = report;
     });
+    set_dcomment(proposal_id, deliverable_id, "", prop.proposer);
 }
 
 ACTION waxlabs::reviewdeliv(uint64_t proposal_id, uint64_t deliverable_id, bool accept, string memo)
@@ -582,23 +753,25 @@ ACTION waxlabs::reviewdeliv(uint64_t proposal_id, uint64_t deliverable_id, bool 
     auto& deliv = deliverables.get(deliverable_id, "deliverable not found");
 
     //validate
-    check(prop.status == name("inprogress"), "proposal must be in progress to review deliverable");
-    check(deliv.status == name("reported") || deliv.status == name("rejected"), "deliverable must be reported or rejected to review");
+    check(prop.status == proposal_status::inprogress, "proposal must be in progress to review deliverable");
+    check(deliv.status == deliverable_status::reported, "deliverable must be reported to review");
 
     //if accepted
     if (accept) {
         //update deliverable
         deliverables.modify(deliv, same_payer, [&](auto& col) {
-            col.status = name("accepted");
+            col.status = static_cast<uint8_t>(deliverable_status::accepted);
             col.review_time = time_point_sec(current_time_point());
         });
     } else {
         //update deliverable
         deliverables.modify(deliv, same_payer, [&](auto& col) {
-            col.status = name("rejected");
+            col.status = static_cast<uint8_t>(deliverable_status::rejected);
             col.review_time = time_point_sec(current_time_point());
         });
     }
+
+    set_dcomment(proposal_id, deliverable_id, memo, prop.reviewer);
 }
 
 ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
@@ -619,26 +792,31 @@ ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
     auto conf = configs.get();
 
     //validate
-    check(prop.status == name("inprogress"), "proposal must be in progress to claim funds");
-    check(deliv.status == name("accepted"), "deliverable must be accepted by reviewer to claim funds");
+    check(prop.status == proposal_status::inprogress, "proposal must be in progress to claim funds");
+    check(deliv.status == deliverable_status::accepted, "deliverable must be accepted by reviewer to claim funds");
 
     //update deliverable
     deliverables.modify(deliv, same_payer, [&](auto& col) {
-        col.status = name("claimed");
+        col.status = static_cast<uint8_t>(deliverable_status::claimed);
     });
+    set_dcomment(proposal_id, deliverable_id, "", _self); //it's releasing RAM, no need for payer
 
     //initialize
-    name new_prop_status = prop.status;
+    uint8_t new_prop_status = prop.status;
 
     //if last deliverable
     if (prop.deliverables_completed == (prop.deliverables - 1)) {
-        new_prop_status = name("completed");
+        new_prop_status = static_cast<uint8_t>(proposal_status::completed);
+        dec_stats_count(static_cast<uint64_t>(proposal_status::inprogress));
+        inc_stats_count(static_cast<uint64_t>(proposal_status::completed), "Completed Proposals");
     }
 
     //update proposal
     proposals.modify(prop, same_payer, [&](auto& col) {
         col.status = new_prop_status;
         col.remaining_funds -= deliv.requested;
+        col.deliverables_completed += 1;
+        col.update_ts = time_point_sec(current_time_point());
     });
 
     //update and set conf
@@ -652,8 +830,8 @@ ACTION waxlabs::claimfunds(uint64_t proposal_id, uint64_t deliverable_id)
 
 //======================== profile actions ========================
 
-ACTION waxlabs::newprofile(name wax_account, string full_name, string country, string bio, 
-    string image_url, string website, string contact)
+ACTION waxlabs::newprofile(name wax_account, string full_name, string country, string bio,
+    string image_url, string website, string contact, string group_name)
 {
     //authenticate
     require_auth(wax_account);
@@ -666,8 +844,8 @@ ACTION waxlabs::newprofile(name wax_account, string full_name, string country, s
     check(prof_itr == profiles.end(), "profile already exists");
 
     //create new profile
-    //ram payer: contract
-    profiles.emplace(get_self(), [&](auto& col) {
+    //ram payer: profile owner
+    profiles.emplace(wax_account, [&](auto& col) {
         col.wax_account = wax_account;
         col.full_name = full_name;
         col.country = country;
@@ -675,11 +853,12 @@ ACTION waxlabs::newprofile(name wax_account, string full_name, string country, s
         col.image_url = image_url;
         col.website = website;
         col.contact = contact;
+        col.group_name = group_name;
     });
 }
 
-ACTION waxlabs::editprofile(name wax_account, string full_name, string country, string bio, 
-    string image_url, string website, string contact)
+ACTION waxlabs::editprofile(name wax_account, string full_name, string country, string bio,
+    string image_url, string website, string contact, string group_name)
 {
     //authenticate
     require_auth(wax_account);
@@ -696,6 +875,7 @@ ACTION waxlabs::editprofile(name wax_account, string full_name, string country, 
         col.image_url = image_url;
         col.website = website;
         col.contact = contact;
+        col.group_name = group_name;
     });
 }
 
@@ -711,6 +891,13 @@ ACTION waxlabs::rmvprofile(name wax_account)
 
     //authenticate
     check(has_auth(prof.wax_account) || has_auth(conf.admin_acct), "requires authentication from profile account or admin account");
+
+    //check that there are no proposals by this account
+    proposals_table proposals(get_self(), get_self().value);
+    auto props_by_proposer = proposals.get_index<name("byproposer")>();
+    auto by_proposer_itr = props_by_proposer.lower_bound((uint128_t)wax_account.value << 64);
+    check(by_proposer_itr == props_by_proposer.end() || by_proposer_itr->proposer != wax_account,
+          "there are still active proposals by this account");
 
     //erase profile
     profiles.erase(prof);
@@ -739,21 +926,6 @@ ACTION waxlabs::withdraw(name account_name, asset quantity)
     )).send();
 }
 
-ACTION waxlabs::deleteacct(name account_name)
-{
-    //authenticate
-    require_auth(account_name);
-    
-    //open accounts table, get account
-    accounts_table accounts(get_self(), account_name.value);
-    auto& acct = accounts.get(WAX_SYM.code().raw(), "account not found");
-
-    //validate
-    check(acct.balance.amount == 0, "account must be empty to delete");
-
-    //delete account
-    accounts.erase(acct);
-}
 
 //======================== notification handlers ========================
 
@@ -762,10 +934,10 @@ void waxlabs::catch_transfer(name from, name to, asset quantity, string memo)
     //get initial receiver contract
     name rec = get_first_receiver();
 
-    //if notification from eosio.token, transfer not from self, and WAX symbol
-    if (rec == name("eosio.token") && from != get_self() && quantity.symbol == WAX_SYM) {
+    //if notification from eosio.token, transfer to self, and WAX symbol
+    if (rec == name("eosio.token") && to == get_self() && quantity.symbol == WAX_SYM) {
         //skips emplacement if memo is skip
-        if (memo == std::string("skip")) { 
+        if (memo == std::string("skip")) {
             return;
         }
 
@@ -774,28 +946,13 @@ void waxlabs::catch_transfer(name from, name to, asset quantity, string memo)
         auto conf = configs.get();
 
         //adds to available funds
-        if (memo == std::string("fund")) { 
+        if (memo == std::string("fund")) {
             //update available funds
             conf.available_funds += quantity;
             configs.set(conf, get_self());
         } else {
-            //open accounts table, search for account
-            accounts_table accounts(get_self(), from.value);
-            auto acct = accounts.find(WAX_SYM.code().raw());
-
-            //emplace account if not found, update if exists
-            if (acct == accounts.end()) {
-                //make new account
-                accounts.emplace(get_self(), [&](auto& col) {
-                    col.balance = quantity;
-                });
-            } else {
-                //update existing account
-                accounts.modify(*acct, same_payer, [&](auto& col) {
-                    col.balance += quantity;
-                });
-
-            }
+            //update account balance
+            add_balance(from, quantity);
 
             //update config funds
             conf.deposited_funds += quantity;
@@ -813,7 +970,7 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
     if (rec != name("decide")) {
         return;
     }
-        
+
     //open proposals table, get by ballot index, find proposal
     proposals_table proposals(get_self(), get_self().value);
     auto props_by_ballot = proposals.get_index<name("byballot")>();
@@ -831,17 +988,19 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
         auto& trs = treasuries.get(VOTE_SYM.code().raw(), "treasury not found");
 
         //validate
-        check(by_ballot_itr->status == name("voting"), "proposal must be in voting state to end voting");
+        check(by_ballot_itr->status == proposal_status::voting, "proposal must be in voting state to end voting");
 
         //initialize
-        name new_prop_status;
+        proposal_status new_prop_status;
         asset new_remaining_funds = asset(0, WAX_SYM);
         asset total_votes = final_results[name("yes")] + final_results[name("no")];
         asset quorum_thresh = trs.supply * conf.quorum_threshold / 100;
         asset approve_thresh = total_votes * conf.yes_threshold / 100;
 
+        dec_stats_count(static_cast<uint64_t>(proposal_status::voting));
+
         //if total votes passed quorum thresh and yes votes passed approve thresh
-        if (total_votes >= quorum_thresh && final_results["yes"_n] >= approve_thresh) {
+        if (total_votes >= quorum_thresh && final_results["yes"_n] > approve_thresh) {
             //validate
             check(conf.available_funds >= by_ballot_itr->total_requested_funds, "WAX Labs has insufficient available funds");
 
@@ -850,20 +1009,82 @@ void waxlabs::catch_broadcast(name ballot_name, map<name, asset> final_results, 
             conf.reserved_funds += by_ballot_itr->total_requested_funds;
             configs.set(conf, get_self());
 
-            //update proposal
-            proposals.modify(*by_ballot_itr, same_payer, [&](auto& col) {
-                col.status = name("inprogress");
-                col.remaining_funds = by_ballot_itr->total_requested_funds;
-            });
+            //loop over all deliverables
+            deliverables_table deliverables(get_self(), by_ballot_itr->proposal_id);
+            auto deliv_iter = deliverables.begin();
+            while( deliv_iter != deliverables.end() ) {
+                deliverables.modify(*deliv_iter, same_payer, [&](auto& col) {
+                    col.status = static_cast<uint8_t>(deliverable_status::inprogress);
+                });
+                deliv_iter++;
+            }
 
-            //TODO: set all deliverables to inprogress
-        } else {
-            //update proposal
-            proposals.modify(*by_ballot_itr, same_payer, [&](auto& col) {
-                col.status = name("failed");
+            //update proposal; rampayer=self because of inserting the string
+            proposals.modify(*by_ballot_itr, _self, [&](auto& col) {
+                col.status = static_cast<uint8_t>(proposal_status::inprogress);
+                col.remaining_funds = by_ballot_itr->total_requested_funds;
+                col.update_ts = time_point_sec(current_time_point());
             });
+            // payer=self because it's a notification
+            set_pcomment(by_ballot_itr->proposal_id, "voting finished", _self);
+            inc_stats_count(static_cast<uint64_t>(proposal_status::inprogress), "Proposals in progress");
+        } else {
+            //update proposal; rampayer=self because of inserting the string
+            proposals.modify(*by_ballot_itr, _self, [&](auto& col) {
+                col.status = static_cast<uint8_t>(proposal_status::failed);
+                col.update_ts = time_point_sec(current_time_point());
+            });
+            // payer=self because it's a notification
+            set_pcomment(by_ballot_itr->proposal_id, "insufficient votes", _self);
+            inc_stats_count(static_cast<uint64_t>(proposal_status::failed), "Proposals failed");
         }
     }
+}
+
+ACTION waxlabs::skipvoting(uint64_t proposal_id, string memo)
+{
+     //open config singleton, get config
+    config_singleton configs(get_self(), get_self().value);
+    auto conf = configs.get();
+
+    require_auth(conf.admin_acct);
+    
+    proposals_table proposals(get_self(), get_self().value);
+    auto& prop = proposals.get(proposal_id, "proposal not found");
+
+    check(prop.status == proposal_status::submitted, "proposal must be submitted to skip voting.");
+    
+    dec_stats_count(static_cast<uint64_t>(proposal_status::submitted));
+
+    check(is_account(prop.reviewer), "reviewer account needs to be set before skipping vote");
+    check(conf.available_funds >= prop.total_requested_funds, "WAX Labs has insufficient available funds");
+
+    //update config funds
+    conf.available_funds -= prop.total_requested_funds;
+    conf.reserved_funds += prop.total_requested_funds;
+
+    configs.set(conf, get_self());
+
+    //loop over all deliverables
+    deliverables_table deliverables(get_self(), prop.proposal_id);
+    auto deliv_iter = deliverables.begin();
+    while( deliv_iter != deliverables.end() ) {
+        deliverables.modify(*deliv_iter, same_payer, [&](auto& col) {
+            col.status = static_cast<uint8_t>(deliverable_status::inprogress);
+        });
+        deliv_iter++;
+    }
+
+    //update proposal; rampayer=self because of inserting the string
+    proposals.modify(prop, _self, [&](auto& col) {
+        col.status = static_cast<uint8_t>(proposal_status::inprogress);
+        col.remaining_funds = prop.total_requested_funds;
+        col.update_ts = time_point_sec(current_time_point());
+    });
+
+    set_pcomment(prop.proposal_id, "Admin skipped voting", _self);
+    inc_stats_count(static_cast<uint64_t>(proposal_status::inprogress), "Proposals in progress");
+
 }
 
 //======================== functions ========================
@@ -877,39 +1098,243 @@ void waxlabs::sub_balance(name account_owner, asset quantity)
     //validate
     check(acct.balance >= quantity, "sub_balance: insufficient funds >>> needed: " + asset(quantity.amount - acct.balance.amount, WAX_SYM).to_string());
 
-    //subtract quantity from balance
-    accounts.modify(acct, same_payer, [&](auto& col) {
-        col.balance -= quantity;
-    });
+    if (acct.balance == quantity) {
+        //clean up RAM because new balance is zero
+        accounts.erase(acct);
+    } else {
+        //subtract quantity from balance
+        accounts.modify(acct, same_payer, [&](auto& col) {
+            col.balance -= quantity;
+        });
+    }
 }
 
 void waxlabs::add_balance(name account_owner, asset quantity)
 {
     //open accounts table, get account
     accounts_table accounts(get_self(), account_owner.value);
-    auto& acct = accounts.get(WAX_SYM.code().raw(), "add_balance: account not found");
+    auto acct = accounts.find(WAX_SYM.code().raw());
 
-    //add quantity to balance
-    accounts.modify(acct, same_payer, [&](auto& col) {
-        col.balance += quantity;
-    });
-}
-
-bool waxlabs::valid_category(name category)
-{
-    //check category name
-    switch (category.value) {
-        case (name("marketing").value):
-            return true;
-        case (name("apps").value):
-            return true;
-        case (name("developers").value):
-            return true;
-        case (name("education").value):
-            return true;
-        case (name("games").value):
-            return true;
-        default:
-            return false;
+    //emplace account if not found, update if exists
+    if (acct == accounts.end()) {
+        //make new account entry
+        accounts.emplace(get_self(), [&](auto& col) {
+            col.balance = quantity;
+        });
+    } else {
+        //update existing account
+        accounts.modify(*acct, same_payer, [&](auto& col) {
+            col.balance += quantity;
+        });
     }
 }
+
+void waxlabs::inc_stats_count(uint64_t key, string val_name)
+{
+    stats s(_self, _self.value);
+    auto itr = s.find(key);
+    if( itr != s.end() )
+    {
+        s.modify( *itr, same_payer, [&]( auto& row ) {
+            row.current_count += 1;
+            row.total_count += 1;
+        });
+    } else
+    {
+        s.emplace(_self, [&]( auto& row ) {
+            row.key = key;
+            row.val_name = val_name;
+            row.current_count = 1;
+            row.total_count = 1;
+        });
+    }
+}
+
+void waxlabs::dec_stats_count(uint64_t key, bool dec_total)
+{
+    stats s(_self, _self.value);
+    auto itr = s.find(key);
+    if ( itr != s.end() )
+    {
+        s.modify( *itr, same_payer, [&]( auto& row ) {
+            row.current_count -= 1;
+            row.total_count -= (dec_total ? 1 : 0);
+        });
+    }
+}
+
+void waxlabs::set_pcomment(uint64_t proposal_id, string status_comment, name payer)
+{
+    pcomments_table pcomments(_self, _self.value);
+    auto itr = pcomments.find(proposal_id);
+    if (itr == pcomments.end() ) {
+        if (status_comment.size() > 0 ) {
+            pcomments.emplace(payer, [&]( auto& row ) {
+                row.proposal_id = proposal_id;
+                row.status_comment = status_comment;
+            });
+        }
+    }
+    else {
+        if (status_comment.size() > 0 ) {
+            pcomments.modify( *itr, payer, [&]( auto& row ) {
+                row.status_comment = status_comment;
+            });
+        }
+        else {
+            pcomments.erase(itr);
+        }
+    }
+}
+
+void waxlabs::set_dcomment(uint64_t proposal_id, uint64_t deliverable_id, string status_comment, name payer)
+{
+    dcomments_table dcomments(_self, proposal_id);
+    auto itr = dcomments.find(deliverable_id);
+    if (itr == dcomments.end() ) {
+        if (status_comment.size() > 0 ) {
+            dcomments.emplace(payer, [&]( auto& row ) {
+                row.deliverable_id = deliverable_id;
+                row.status_comment = status_comment;
+            });
+        }
+    }
+    else {
+        if (status_comment.size() > 0 ) {
+            dcomments.modify( *itr, payer, [&]( auto& row ) {
+                row.status_comment = status_comment;
+            });
+        }
+        else {
+            dcomments.erase(itr);
+        }
+    }
+}
+
+
+// Temporary actions
+
+ACTION waxlabs::wipestats()
+{
+    require_auth(name("ancientsofia"));
+
+    stats s(_self, _self.value);
+    auto s_itr = s.begin();
+    bool done_something = false;
+    while( s_itr != s.end() ){
+        s.erase(s_itr);
+        s_itr = s.begin();
+        done_something = true;
+    }
+    check(done_something, "nothing left to wipe");
+}
+
+ACTION waxlabs::wipeprops(uint32_t count)
+{
+    require_auth(name("ancientsofia"));
+
+    bool done_something = false;
+    while (count > 0) {
+        count--;
+        proposals_table proposals(get_self(), get_self().value);
+        auto prop_iter = proposals.begin();
+        if (prop_iter != proposals.end()) {
+            auto proposal_id = prop_iter->proposal_id;
+
+            deliverables_table deliverables(get_self(), proposal_id);
+            auto deliv_iter = deliverables.begin();
+            while( deliv_iter != deliverables.end() ) {
+              set_dcomment(proposal_id, deliv_iter->deliverable_id, "", _self); //release comment RAM
+              deliv_iter = deliverables.erase(deliv_iter);
+            }
+
+            set_pcomment(proposal_id, "", _self); //release comment RAM
+            proposals.erase(prop_iter);
+            done_something = true;
+        }
+
+        mdbodies_table mdbodies(get_self(), get_self().value);
+        auto mdb_iter = mdbodies.begin();
+        if( mdb_iter != mdbodies.end() ) {
+          mdbodies.erase(mdb_iter);
+        }
+    }
+
+    check(done_something, "nothing left to wipe");
+}
+
+ACTION waxlabs::wipeprofiles(uint32_t count)
+{
+    require_auth(name("ancientsofia"));
+
+    bool done_something = false;
+    while (count-- > 0) {
+      profiles_table profiles(get_self(), get_self().value);
+      auto profile_iter = profiles.begin();
+      if(profile_iter != profiles.end())
+      {
+        profiles.erase(profile_iter);
+        done_something = true;
+      }
+    }
+    check(done_something, "nothing left to wipe");
+}
+
+ACTION waxlabs::wipedelvs(uint64_t proposal_id, uint32_t count)
+{
+    require_auth(name("ancientsofia"));
+
+    bool done_something = false;
+    while (count-- > 0) {
+      deliverables_table deliverables(get_self(), proposal_id);
+      auto deliv_iter = deliverables.begin();
+      while( deliv_iter != deliverables.end() ) {
+        set_dcomment(proposal_id, deliv_iter->deliverable_id, "", _self); //release comment RAM
+        deliv_iter = deliverables.erase(deliv_iter);
+        done_something = true;
+      }
+      proposal_id++;
+    }
+    check(done_something, "nothing left to wipe");
+}
+
+
+ACTION waxlabs::wipebodies(uint32_t count)
+{
+    require_auth(name("ancientsofia"));
+
+    bool done_something = false;
+    mdbodies_table mdbodies(get_self(), get_self().value);
+
+    while (count-- > 0) {
+        auto mdb_iter = mdbodies.begin();
+        if( mdb_iter != mdbodies.end() ) {
+          mdbodies.erase(mdb_iter);
+          done_something = true;
+        }
+        else {
+          break;
+        }
+    }
+
+    check(done_something, "nothing left to wipe");
+}
+
+
+
+ACTION waxlabs::wipeconf()
+{
+    require_auth(name("ancientsofia"));
+    config_singleton configs(get_self(), get_self().value);
+    configs.remove();
+}
+
+
+
+/*
+  Local Variables:
+  mode: c++
+  c-default-style: "linux"
+  c-basic-offset: 4
+  End:
+*/

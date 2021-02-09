@@ -1,0 +1,48 @@
+---
+stages:
+  - test
+  - prod
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+
+build-test-deploy-testnet:
+  script:
+    # compile sc
+    - chmod +x build.sh && chmod +x deploy.sh
+    - mkdir build
+    - ./build.sh waxlabs
+    # run tests
+    - echo "insert Hydra here. https://docs.klevoya.com/"
+    # unlock build server wallet
+    - cleos wallet lock
+    - cat ~/wallet.pw  | cleos wallet unlock --password
+    # update smart contract on chain
+    - ./deploy.sh waxlabs labstest1111 testnet
+  stage: test
+  artifacts:
+    paths:
+      - build/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "testnet"'
+
+build-test-deploy-mainnet:
+  script:
+    # compile sc
+    - chmod +x build.sh && chmod +x deploy.sh
+    - mkdir build
+    - ./build.sh waxlabs
+    # run tests
+    - echo "insert Hydra here. https://docs.klevoya.com/"
+    # unlock build server wallet
+    - cleos wallet lock
+    - cat ~/wallet.pw  | cleos wallet unlock --password
+    # update smart contract on chain
+    - ./deploy.sh waxlabs labs mainnet
+  stage: prod
+  artifacts:
+    paths:
+      - build/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
