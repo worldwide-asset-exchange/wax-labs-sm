@@ -39,7 +39,7 @@ build-test-deploy-mainnet:
     - cleos wallet lock
     - cat ~/wallet.pw  | cleos wallet unlock --password
     # update smart contract on chain
-    - ./deploy.sh waxlabs labs mainnet
+    - ./deploy.sh waxlabs labs.wax mainnet
   stage: prod
   artifacts:
     paths:
